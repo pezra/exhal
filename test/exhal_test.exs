@@ -53,28 +53,30 @@ defmodule ExHalFacts do
     end
   end
 
+  defmodule DocWithCuriedLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: ExHal.parse ~s({"_links": {
+                                     "app:foo": { "href": "http://example.com" },
+                                     "curies": [ { "name": "app",
+                                                   "href": "http://example.com/rels/{rel}",
+                                                   "templated": true } ]
+                                          } })
 
-  # facts "about a HAL document with curied links" do
-  #   @doc = Exhal.parse ~s({"_links": {
-  #                             "app:foo": { "href": "http://example.com" },
-  #                             "curies": [ { "name": "app",
-  #                                           "href": "http://example.com/rels/{rel}",
-  #                                           "templated": true } ]
-  #                                  } })
+    @tag :pending
+    test "links can be fetched by decuried rels" do
+      assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: _, name: _}] } =
+        ExHal.fetch(doc, "http://example.com/rels/foo")
+    end
 
-  #   fact "links can be fetched by decuried rels" do
-  #     ExHal.fetch(@doc, "http://example.com/rels/foo") |>
-  #       matches {:ok, %ExHal.Relation{target: "http://example.com", templated: _} }
-  #   end
+    test "links can be fetched by curied rels" do
+      assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: _, name: _}] } =
+        ExHal.fetch(doc, "app:foo")
+    end
 
-  #   fact "links can be fetched by decuried rels" do
-  #     ExHal.fetch(@doc, "http://example.com/rels/foo") |>
-  #       matches {:ok, %ExHal.Relation{target: "http://example.com", templated: _} }
-  #   end
-  # end
+  end
 
   # Background
-  
+
   defp assert_is_hal_document(actual)  do
     assert %ExHal.Document{properties: _, relations: _} = actual
   end

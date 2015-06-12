@@ -4,7 +4,15 @@ defmodule ExHal do
   end
 
   defmodule Relation do
-    defstruct [:target, :templated]
+    defstruct [:target, :templated, :name]
+
+    def new_from_map(a_map) do
+      target = Map.fetch!(a_map, "href")
+      templated = Map.get(a_map, "templated", false)
+      name = Map.get(a_map, "name", nil)
+
+      %Relation{target: target, templated: templated, name: name}
+    end
   end
 
   def parse hal_str do
@@ -31,10 +39,44 @@ defmodule ExHal do
   end
 
   defp links_section_to_relations(links) do
-    Enum.into(
+    raw_links = Enum.into(
       Enum.map(links, fn {rel, l} -> {rel, relations_from_links_section_member(l)} end),
       %{}
     )
+
+    decuried_links(raw_links)
+  end
+
+  def decuried_links(raw_links) do
+    curies = Enum.into(
+      Enum.map(Map.get(raw_links, "curies", []), fn it -> {it.name, it.target} end ),
+      %{}
+    )
+
+    Enum.into(
+      Enum.flat_map(
+        raw_links, fn {rel, relation} -> Enum.map(rel_variations(curies, rel),
+                                                  fn rel -> {rel, relation} end) end
+      ),
+      %{}
+    )
+  end
+
+  defp rel_variations(curies, rel) do
+    {ns, base} = case String.split(rel, ":", parts: 2) do
+                   [ns,base] -> {ns,base}
+                   [base]    -> {nil,base}
+                 end
+
+    case Map.fetch(curies, ns) do
+      {:ok, tmpl} -> [rel, uri_tmpl_expand(tmpl, rel: base)]
+      :error      -> [rel]
+    end
+  end
+
+  # pretends like a generic function but only works for curie templates!
+  defp uri_tmpl_expand(tmpl, opts \\ []) do
+    String.replace(tmpl, "{rel}", Keyword.fetch!(opts, :rel))
   end
 
   defp relations_from_links_section_member(link_infos) when is_map(link_infos) do
@@ -50,9 +92,6 @@ defmodule ExHal do
   end
 
   defp relation_from_link_info(info) do
-    target = Map.fetch!(info, "href")
-    templated = Map.get(info, "templated", false)
-
-    %Relation{target: target, templated: templated}
+    Relation.new_from_map(info)
   end
 end
