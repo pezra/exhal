@@ -62,7 +62,6 @@ defmodule ExHalFacts do
                                                    "templated": true } ]
                                           } })
 
-    @tag :pending
     test "links can be fetched by decuried rels" do
       assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: _, name: _}] } =
         ExHal.fetch(doc, "http://example.com/rels/foo")
@@ -71,6 +70,25 @@ defmodule ExHalFacts do
     test "links can be fetched by curied rels" do
       assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: _, name: _}] } =
         ExHal.fetch(doc, "app:foo")
+    end
+
+  end
+
+  defmodule DocWithTemplatedLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: ExHal.parse ~s({"_links": {
+                                     "search": { "href": "http://example.com/{?q}",
+                                                 "templated": true }
+                                          } } )
+
+    test "templated links can be fetched" do
+      assert {:ok, [%ExHal.Relation{target: "http://example.com/{?q}", templated: true, name: _}] } =
+        ExHal.fetch(doc, "search")
+    end
+
+    test "templated links are automatically expanded if vars are provided" do
+      assert {:ok, [%ExHal.Relation{target: "http://example.com/?q=foo", templated: true, name: _}] } =
+        ExHal.fetch(doc, "search", q: "foo")
     end
 
   end

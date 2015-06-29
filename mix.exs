@@ -28,8 +28,8 @@ defmodule ExHal.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:amrita, "~>0.4", github: "josephwilk/amrita"},
-      {:poison, "~>1.4"}
+      {:poison, "~>1.4"},
+      {:uri_template, "~>1.0"}
     ]
   end
 end

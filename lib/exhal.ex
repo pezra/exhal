@@ -6,7 +6,10 @@ defmodule ExHal do
   defmodule Relation do
     defstruct [:target, :templated, :name]
 
-    def new_from_map(a_map) do
+    @doc """
+      Build new relation.
+    """
+    def from_map(a_map) do
       target = Map.fetch!(a_map, "href")
       templated = Map.get(a_map, "templated", false)
       name = Map.get(a_map, "name", nil)
@@ -15,17 +18,47 @@ defmodule ExHal do
     end
   end
 
+  @doc """
+  Returns a new `%ExHal.Document` representing the HAL document provided.
+  """
   def parse hal_str do
     parsed = Poison.Parser.parse!(hal_str)
     %ExHal.Document{properties: properties_in(parsed), relations: relations_in(parsed)}
   end
 
+  @doc """
+  Fetches value of specified property or links whose `rel` matches
+
+  Returns `{:ok, <property value>}` if `name` identifies a property;
+          `{:ok, [<relation>, ...]}` if `name` identifies a link;
+          `:error` othewise
+  """
   def fetch(a_document, name) do
     case Map.fetch(a_document.properties, name) do
-      :error   -> Map.fetch(a_document.relations, name)
-      prop_val -> prop_val
+      :error  -> Map.fetch(a_document.relations, name)
+      results -> results
     end
   end
+
+  @doc """
+  Fetches expanded version of all templated links with `rel` matching
+  `name`. For compatibility sake if no relations are found `name` will be used
+  to look properties.
+
+  Returns `{:ok, [<relation with expanded target>, ...]}` if `name` identifies a link;
+          `{:ok, <property value>}` if `name` identifies a property;
+          `:error` othewise
+  """
+  def fetch(a_document, name, vars) do
+    case Map.fetch(a_document.relations, name) do
+      :error ->  Map.fetch(a_document.properties, name)
+      {:ok, results} -> { :ok, results |>
+                           Enum.map fn r ->
+                             %{r | target: UriTemplate.expand(r.target, vars)}
+                           end }
+    end
+  end
+
 
   defp properties_in(parsed_json) do
     Map.drop(parsed_json, ["_links"])
@@ -47,7 +80,7 @@ defmodule ExHal do
     decuried_links(raw_links)
   end
 
-  def decuried_links(raw_links) do
+  defp decuried_links(raw_links) do
     curies = Enum.into(
       Enum.map(Map.get(raw_links, "curies", []), fn it -> {it.name, it.target} end ),
       %{}
@@ -69,29 +102,20 @@ defmodule ExHal do
                  end
 
     case Map.fetch(curies, ns) do
-      {:ok, tmpl} -> [rel, uri_tmpl_expand(tmpl, rel: base)]
+      {:ok, tmpl} -> [rel, UriTemplate.expand(tmpl, rel: base)]
       :error      -> [rel]
     end
   end
 
-  # pretends like a generic function but only works for curie templates!
-  defp uri_tmpl_expand(tmpl, opts \\ []) do
-    String.replace(tmpl, "{rel}", Keyword.fetch!(opts, :rel))
-  end
-
-  defp relations_from_links_section_member(link_infos) when is_map(link_infos) do
-    [relation_from_link_info(link_infos)]
+  defp relations_from_links_section_member(link_info) when is_map(link_info) do
+    [Relation.from_map(link_info)]
   end
 
   defp relations_from_links_section_member(link_infos) when is_list(link_infos) do
-    Enum.map(link_infos, fn x -> relation_from_link_info(x) end)
+    Enum.map link_infos, &Relation.from_map/1
   end
 
   defp relations_from_links_section_member(nil) do
     []
-  end
-
-  defp relation_from_link_info(info) do
-    Relation.new_from_map(info)
   end
 end
