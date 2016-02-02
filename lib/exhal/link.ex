@@ -4,6 +4,9 @@ defmodule ExHal.Link do
     are found in the `_links` and `_embedded` sections of a HAL document
   """
 
+  alias ExHal.Error, as: Error
+  alias ExHal.Document, as: Document
+
   defstruct [:rel, :href, :templated, :name, :target]
 
   @doc """
@@ -21,7 +24,7 @@ defmodule ExHal.Link do
     Build new link struct from embedded doc.
   """
   def from_embedded(rel, embedded_doc) do
-    {:ok, href} = ExHal.url(embedded_doc, fn () -> {:ok, nil} end)
+    {:ok, href} = ExHal.url(embedded_doc, fn (_doc) -> {:ok, nil} end)
 
     %__MODULE__{rel: rel, href: href, templated: false, target: embedded_doc}
   end
@@ -46,6 +49,18 @@ defmodule ExHal.Link do
   end
 
   @doc """
+  Returns `{:ok, %ExHal.Document{}}`    - representation of the target of the specifyed link
+          `{:error, %ExHal.Document{}}` - non-2XX responses that have a HAL body
+  """
+  def follow(link, vars \\ %{}) do
+    case link do
+      %__MODULE__{target: (t = %Document{})} -> {:ok, t}
+
+      _ -> fetch_target(link, vars)
+    end
+  end
+
+  @doc """
     Expands "curie"d link rels using the namespaces found in the `curies` link.
 
     Returns `[%Link{}, ...]` a link struct for each possible variation of the input link
@@ -55,7 +70,20 @@ defmodule ExHal.Link do
     |> Enum.map(fn rel -> %{link | rel: rel} end)
   end
 
-  
+  defp fetch_target(link, vars) do
+    case target_url(link, vars) do
+      :error -> {:error, %Error{reason: "Unable to determine target url"} }
+
+      {:ok, url} ->
+        case HTTPoison.get(url, [], follow_redirect: true) do
+          {:ok, resp} -> extract_doc(resp)
+
+          {:error, err} ->
+            {:error, %ExHal.Error{reason: err.reason} }
+        end
+    end
+  end
+
   defp rel_variations(namespaces, rel) do
     {ns, base} = case String.split(rel, ":", parts: 2) do
                    [ns,base] -> {ns,base}
@@ -65,6 +93,16 @@ defmodule ExHal.Link do
     case Dict.fetch(namespaces, ns) do
       {:ok, tmpl} -> [rel, UriTemplate.expand(tmpl, rel: base)]
       :error      -> [rel]
+    end
+  end
+
+  defp extract_doc(resp) do
+    doc = ExHal.parse(resp.body)
+    code = resp.status_code
+
+    cond do
+      Enum.member?(200..299, code) -> {:ok, doc}
+      true ->  {:error, doc}
     end
   end
 end
