@@ -1,4 +1,5 @@
 %{"amrita": {:git, "git://github.com/josephwilk/amrita.git", "f51ae5225fb77ed0238e29fc80dbfa95e77c3ceb", []},
+  "earmark": {:hex, :earmark, "0.2.1"},
   "ex_doc": {:hex, :ex_doc, "0.11.4"},
   "meck": {:git, "git://github.com/eproxus/meck.git", "17b0ea5b7d9c93af3a52b5152c6bee14302b3885", [branch: "master"]},
   "poison": {:hex, :poison, "1.4.0"},

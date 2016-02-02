@@ -2,6 +2,7 @@ Code.require_file "../test_helper.exs", __ENV__.file
 
 defmodule ExHalFacts do
   use ExUnit.Case, async: true
+  doctest ExHal
 
   test "ExHal parses valid, empty HAL documents" do
     assert_is_hal_document ExHal.parse "{}"
