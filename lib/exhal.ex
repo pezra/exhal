@@ -15,10 +15,10 @@ defmodule ExHal do
   ...> }
   ...> |)
   %ExHal.Document{links: %{"profile" => [%ExHal.Link{name: nil, rel: "profile", target: nil,
-                target_url: "http://example.com/normal", templated: false},
-               %ExHal.Link{name: nil, rel: "profile", target: nil, target_url: "http://example.com/special",
+                href: "http://example.com/normal", templated: false},
+               %ExHal.Link{name: nil, rel: "profile", target: nil, href: "http://example.com/special",
                 templated: false}],
-              "self" => [%ExHal.Link{name: nil, rel: "self", target: nil, target_url: "http://example.com",
+              "self" => [%ExHal.Link{name: nil, rel: "self", target: nil, href: "http://example.com",
                 templated: false}]}, properties: %{"name" => "Hello!"}}
   iex> ExHal.url(doc)
   {:ok, "http://example.com"}
@@ -29,17 +29,17 @@ defmodule ExHal do
   iex> ExHal.fetch(doc, "profile")
   {:ok,
    [%ExHal.Link{name: nil, rel: "profile", target: nil,
-                target_url: "http://example.com/normal",
+                href: "http://example.com/normal",
                 templated: false},
     %ExHal.Link{name: nil, rel: "profile", target: nil,
-                target_url: "http://example.com/special",
+                href: "http://example.com/special",
                 templated: false}]}
   iex> ExHal.get_links_lazy(doc, "profile", fn -> [] end)
   [%ExHal.Link{name: nil, rel: "profile", target: nil,
-               target_url: "http://example.com/normal",
+               href: "http://example.com/normal",
                templated: false},
    %ExHal.Link{name: nil, rel: "profile", target: nil,
-               target_url: "http://example.com/special",
+               href: "http://example.com/special",
                templated: false}]
   iex> ExHal.get_links_lazy(doc, "alternate", fn -> [] end)
   []
@@ -105,7 +105,7 @@ defmodule ExHal do
   def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
     case ExHal.fetch(a_doc, "self") do
       :error            -> default_fn.(a_doc)
-      {:ok, [link | _]} -> {:ok, link.target_url}
+      {:ok, [link | _]} -> Link.target_url(link)
     end
   end
 end
