@@ -3,7 +3,7 @@ defmodule ExHal.Mixfile do
 
   def project do
     [app: :exhal,
-     description: "Navigate HAL APIs with ease",
+     description: "Use HAL APIs with ease",
      version: "1.0.0",
      elixir: "~> 1.0",
      deps: deps,
@@ -40,4 +40,12 @@ defmodule ExHal.Mixfile do
       contributors: ["Peter Williams"],
       links: %{"homepage": "http://github.com/pezra/exhal"} ]
   end
+
+  defp git_files do
+    System.cmd("git", ["ls-files", "-z"])
+      |> (fn {x,_} -> x end).()
+      |> String.split(<<0>>)
+      |> Enum.filter(fn x -> x != "" end)
+  end
+
 end
