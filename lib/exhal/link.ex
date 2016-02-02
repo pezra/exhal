@@ -56,7 +56,18 @@ defmodule ExHal.Link do
     case link do
       %__MODULE__{target: (t = %Document{})} -> {:ok, t}
 
-      _ -> fetch_target(link, vars)
+      _ -> with_url link, vars, fn url ->
+          extract_return HTTPoison.get(url, [], follow_redirect: true)
+        end
+    end
+  end
+
+  @doc """
+  Makes a POST request against the target of the link.
+  """
+  def post(link, body) do
+    with_url link, fn url ->
+      extract_return HTTPoison.post(url, body, [], follow_redirect: true)
     end
   end
 
@@ -68,6 +79,21 @@ defmodule ExHal.Link do
   def expand_curie(link, namespaces) do
     rel_variations(namespaces, link.rel)
     |> Enum.map(fn rel -> %{link | rel: rel} end)
+  end
+
+  defp extract_return(http_resp) do
+    case http_resp do
+      {:error, err} -> {:error, %ExHal.Error{reason: err.reason} }
+
+      {:ok, resp} -> extract_doc(resp)
+    end
+  end
+
+  defp with_url(link, tmpl_vars \\ %{}, fun) do
+    case target_url(link, tmpl_vars) do
+      {:ok, url} -> fun.(url)
+      :error -> {:error, %Error{reason: "Unable to determine target url"} }
+    end
   end
 
   defp fetch_target(link, vars) do

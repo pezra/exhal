@@ -88,7 +88,7 @@ defmodule ExHal.LinkTest do
     test ".follow w/ templated link" do
       stub_request "http://example.com/?q=test", fn ->
         link = ExHal.LinkTest.templated_link("http://example.com/{?q}")
-        
+
         assert {:ok, (target = %Document{})} = Link.follow(link, q: "test")
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
@@ -104,6 +104,20 @@ defmodule ExHal.LinkTest do
       end
     end
 
+    test ".post w/ normal link" do
+      # unfortunately post stubbing doesn't seem to work in exvcr
+
+      # link = ExHal.LinkTest.normal_link("http://example.com/")
+      # new_thing_hal = hal_str("http://example.com/new-thing")
+
+      # stub_post_request link, [resp: new_thing_hal], fn ->
+
+      #   assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
+
+      #   assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      # end
+    end
+
     def hal_str(url) do
       """
       { "name": "#{url}",
@@ -116,6 +130,15 @@ defmodule ExHal.LinkTest do
 
     def stub_request(url, block) do
       use_cassette :stub, [url: url, body: hal_str(url), status_code: 200] do
+        block.()
+      end
+    end
+
+    def stub_post_request(link, opts \\ %{}, block) do
+      {:ok, url} = Link.target_url(link)
+      resp = Dict.get opts, :resp, fn (_) -> hal_str(url) end
+
+      use_cassette :stub, [url: url, method: "post", body: resp, status_code: 201] |>IO.inspect do
         block.()
       end
     end
