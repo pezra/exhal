@@ -37,7 +37,7 @@ defmodule ExHal.Mixfile do
   defp package do
     [ files: git_files,
       licenses: ["http://opensource.org/licenses/MIT"],
-      contributors: ["Peter Williams"],
+      maintainers: ["Peter Williams"],
       links: %{"homepage": "http://github.com/pezra/exhal"} ]
   end
 
