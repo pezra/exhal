@@ -25,12 +25,53 @@ defmodule ExHalFacts do
     end
   end
 
+  defmodule UrlFuncTest do
+    use ExUnit.Case, async: true
+
+    test "URL can be determined with self link" do
+      assert {:ok, "http://example.com"} = ExHal.url(doc_with_self_link)
+    end
+
+    test "URL cannot be determined without self link" do
+      assert :error = ExHal.url(doc_sans_self_link)
+    end
+
+
+    defp doc_with_self_link do
+      ExHal.parse ~s({"_links": { "self": {"href": "http://example.com"}}})
+    end
+    defp doc_sans_self_link do
+      ExHal.parse ~s({"_links": { }})
+    end
+  end
+
   defmodule DocWithWithLinks do
     use ExUnit.Case, async: true
     defp doc, do: ExHal.parse ~s({"_links": { "profile": {"href": "http://example.com"}}})
 
     test "links can be fetched" do
-      assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: false}] } =
+      assert {:ok, [%ExHal.Link{target_url: "http://example.com", templated: false}] } =
+        ExHal.fetch(doc, "profile")
+    end
+
+    test "missing links cannot be fetched" do
+      assert :error = ExHal.fetch(doc, "author")
+    end
+  end
+
+  defmodule DocWithWithEmbeddedLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: ExHal.parse ~s({"_embedded": {
+                                     "profile": {
+                                       "name": "Peter",
+                                       "_links": {
+                                         "self": { "href": "http://example.com"}
+                                       }}}})
+
+    test "embeddeds can be fetched" do
+      assert {:ok, [%ExHal.Link{target: %ExHal.Document{},
+                                target_url: "http://example.com",
+                                templated: false}] } =
         ExHal.fetch(doc, "profile")
     end
 
@@ -63,12 +104,12 @@ defmodule ExHalFacts do
                                           } })
 
     test "links can be fetched by decuried rels" do
-      assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: _, name: _}] } =
+      assert {:ok, [%ExHal.Link{target_url: "http://example.com", templated: _, name: _}] } =
         ExHal.fetch(doc, "http://example.com/rels/foo")
     end
 
     test "links can be fetched by curied rels" do
-      assert {:ok, [%ExHal.Relation{target: "http://example.com", templated: _, name: _}] } =
+      assert {:ok, [%ExHal.Link{target_url: "http://example.com", templated: _, name: _}] } =
         ExHal.fetch(doc, "app:foo")
     end
 
@@ -82,13 +123,8 @@ defmodule ExHalFacts do
                                           } } )
 
     test "templated links can be fetched" do
-      assert {:ok, [%ExHal.Relation{target: "http://example.com/{?q}", templated: true, name: _}] } =
+      assert {:ok, [%ExHal.Link{target_url: "http://example.com/{?q}", templated: true, name: _}] } =
         ExHal.fetch(doc, "search")
-    end
-
-    test "templated links are automatically expanded if vars are provided" do
-      assert {:ok, [%ExHal.Relation{target: "http://example.com/?q=foo", templated: true, name: _}] } =
-        ExHal.fetch(doc, "search", q: "foo")
     end
 
   end
@@ -96,6 +132,6 @@ defmodule ExHalFacts do
   # Background
 
   defp assert_is_hal_document(actual)  do
-    assert %ExHal.Document{properties: _, relations: _} = actual
+    assert %ExHal.Document{properties: _, links: _} = actual
   end
 end
