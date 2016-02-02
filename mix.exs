@@ -3,11 +3,11 @@ defmodule ExHal.Mixfile do
 
   def project do
     [app: :exhal,
-     version: "0.0.1",
+     description: "Navigate HAL APIs with ease",
+     version: "1.0.0",
      elixir: "~> 1.0",
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps]
+     deps: deps,
+     package: package]
   end
 
   # Configuration for the OTP application
@@ -29,7 +29,15 @@ defmodule ExHal.Mixfile do
   defp deps do
     [
       {:poison, "~>1.4"},
-      {:uri_template, "~>1.0"}
+      {:uri_template, "~>1.0"},
+      {:ex_doc, "~> 0.11", only: :dev}
     ]
+  end
+
+  defp package do
+    [ files: git_files,
+      licenses: ["http://opensource.org/licenses/MIT"],
+      contributors: ["Peter Williams"],
+      links: %{"homepage": "http://github.com/pezra/exhal"} ]
   end
 end

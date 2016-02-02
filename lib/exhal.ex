@@ -36,7 +36,7 @@ defmodule ExHal do
   """
   def get_lazy(a_doc, name, default_fun) do
     get_property_lazy(a_doc, name,
-      fn -> get_link_lazy(a_doc, name, default_fun) end
+      fn -> get_links_lazy(a_doc, name, default_fun) end
     )
   end
 
@@ -52,7 +52,7 @@ defmodule ExHal do
   Returns `[%Link{}...]`     when link exists
           result of `default_fun` otherwise
   """
-  def get_link_lazy(a_doc, link_name, default_fun) do
+  def get_links_lazy(a_doc, link_name, default_fun) do
     Dict.get_lazy(a_doc.links, link_name, default_fun)
   end
 
