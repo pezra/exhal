@@ -1,5 +1,9 @@
+
 ExHal
 =====
+
+[![Build Status](https://travis-ci.org/pezra/exhal.svg?branch=master)](https://travis-ci.org/pezra/exhal) 
+[![Hex.pm](https://img.shields.io/hexpm/v/exhal.svg)](https://hex.pm/packages/exhal)
 
 Use [HAL](http://stateless.co/hal_specification.html) APIs with ease.
 
