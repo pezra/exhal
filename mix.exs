@@ -28,7 +28,7 @@ defmodule ExHal.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:poison, "~>1.4"},
+      {:poison, "~>2.0"},
       {:uri_template, "~>1.0"},
       {:httpoison, "~> 0.8.0"},
 
