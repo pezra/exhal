@@ -49,6 +49,25 @@ iex> ExHal.get_links_lazy(doc, "alternate", fn -> [] end)
 
 ```
 
+ExHal can also make requests. Continuing the example above:
+
+```elixir
+ExHal.follow_link(doc, "profile")
+{:error, %ExHal.Error{reason: "multiple choices"}}
+
+ExHal.follow_link(doc, "profile")
+{:error, %ExHal.Error{reason: "no such link"}}
+
+ExHal.follow_link("self")
+{:ok, %ExHal.Document{...}}
+
+ExHal.follow_link(doc, "profile", pick_volunteer: true)
+{:ok, %ExHal.Document{...}}
+
+ExHal.follow_links(doc, "profile")
+[{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}]
+
+```
 
 Installation
 ----

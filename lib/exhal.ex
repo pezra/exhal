@@ -45,10 +45,32 @@ defmodule ExHal do
   []
 
   ```
+
+  ExHal can also make requests. Continuing the example above:
+
+  ```elixir
+  ExHal.follow_link(doc, "profile")
+  {:error, %ExHal.Error{reason: "multiple choices"}}
+
+  ExHal.follow_link(doc, "profile")
+  {:error, %ExHal.Error{reason: "no such link"}}
+
+  ExHal.follow_link("self")
+  {:ok, %ExHal.Document{...}}
+
+  ExHal.follow_link(doc, "profile", pick_volunteer: true)
+  {:ok, %ExHal.Document{...}}
+
+  ExHal.follow_links(doc, "profile")
+  [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+
+  ```
+
   """
 
   alias ExHal.Link, as: Link
   alias ExHal.Document, as: Document
+  alias ExHal.Error, as: Error
 
   @doc """
   Returns a new `%ExHal.Document` representing the HAL document provided.
@@ -57,6 +79,39 @@ defmodule ExHal do
     parsed = Poison.Parser.parse!(hal_str)
 
     Document.from_parsed_hal(parsed)
+  end
+
+  @doc """
+  Follows a link in a HAL document.
+
+  Returns `{:ok,    %ExHal.Document{...}}` if request is an error
+          `{:error, %ExHal.Error{...}}` if not
+  """
+  def follow_link(a_doc, name, opts \\ %{pick_volunteer: false, tmpl_vars: %{}}) do
+    pick_volunteer? = Dict.get opts, :pick_volunteer, false
+    tmpl_vars = Dict.get opts, :tmpl_vars, %{}
+
+    case figure_link(a_doc, name, pick_volunteer?) do
+      {:error, e} -> {:error, e}
+      {:ok, link} -> Link.follow(link, tmpl_vars)
+    end
+
+  end
+
+  @doc """
+  Follows all links of a particular rel in a HAL document.
+
+  Returns `[{:ok, %ExHal.Document{...}}, {:error, %ExHal.Error{...}, ...]`
+  """
+  def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}}) do
+    tmpl_vars = Dict.get opts, :tmpl_vars, %{}
+
+    case get_links_lazy(a_doc, name, fn -> :missing end) do
+      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+
+      links    -> Enum.map(links, fn link -> Link.follow(link, tmpl_vars) end)
+    end
+
   end
 
   @doc """
@@ -106,6 +161,20 @@ defmodule ExHal do
     case ExHal.fetch(a_doc, "self") do
       :error            -> default_fn.(a_doc)
       {:ok, [link | _]} -> Link.target_url(link)
+    end
+  end
+
+  defp figure_link(a_doc, name, pick_volunteer?) do
+    case get_links_lazy(a_doc, name, fn -> :missing end) do
+      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+
+      (ls = [_|[_|_]]) -> if pick_volunteer? do
+                             {:ok, List.first(ls)}
+                           else
+                             {:error, %Error{reason: "multiple choices"}}
+                           end
+
+      [l] -> {:ok, l}
     end
   end
 end

@@ -96,20 +96,6 @@ defmodule ExHal.Link do
     end
   end
 
-  defp fetch_target(link, vars) do
-    case target_url(link, vars) do
-      :error -> {:error, %Error{reason: "Unable to determine target url"} }
-
-      {:ok, url} ->
-        case HTTPoison.get(url, [], follow_redirect: true) do
-          {:ok, resp} -> extract_doc(resp)
-
-          {:error, err} ->
-            {:error, %ExHal.Error{reason: err.reason} }
-        end
-    end
-  end
-
   defp rel_variations(namespaces, rel) do
     {ns, base} = case String.split(rel, ":", parts: 2) do
                    [ns,base] -> {ns,base}

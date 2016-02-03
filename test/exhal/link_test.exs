@@ -138,7 +138,7 @@ defmodule ExHal.LinkTest do
       {:ok, url} = Link.target_url(link)
       resp = Dict.get opts, :resp, fn (_) -> hal_str(url) end
 
-      use_cassette :stub, [url: url, method: "post", body: resp, status_code: 201] |>IO.inspect do
+      use_cassette :stub, [url: url, method: "post", body: resp, status_code: 201] do
         block.()
       end
     end
@@ -148,14 +148,14 @@ defmodule ExHal.LinkTest do
     link_entry = %{"href" => url,
                    "templated" => false,
                    "name" => "test"}
-    link = Link.from_links_entry("foo", link_entry)
+    Link.from_links_entry("foo", link_entry)
   end
 
   def templated_link(tmpl \\ "http://example.com/{?q}") do
     link_entry = %{"href" => tmpl,
                    "templated" => true,
                    "name" => "test"}
-    link = Link.from_links_entry("foo", link_entry)
+    Link.from_links_entry("foo", link_entry)
   end
 
   def embedded_link(url \\ "http://example.com/embedded") do
