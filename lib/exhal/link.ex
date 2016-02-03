@@ -30,7 +30,7 @@ defmodule ExHal.Link do
   end
 
   @doc """
-    Returns target url, expanded with `vars` if any are provied.
+    Returns target url, expanded with `vars` if any are provided.
 
     Returns `{:ok, "fully_qualified_url"}`
             `:error` if link target is anonymous
@@ -118,4 +118,3 @@ defmodule ExHal.Link do
     end
   end
 end
-
