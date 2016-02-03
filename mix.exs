@@ -4,7 +4,7 @@ defmodule ExHal.Mixfile do
   def project do
     [app: :exhal,
      description: "Use HAL APIs with ease",
-     version: "1.0.0",
+     version: "2.1.0",
      elixir: "~> 1.0",
      deps: deps,
      package: package]
@@ -28,7 +28,7 @@ defmodule ExHal.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [
-      {:poison, "~>1.4"},
+      {:poison, "~>2.0"},
       {:uri_template, "~>1.0"},
       {:httpoison, "~> 0.8.0"},
 

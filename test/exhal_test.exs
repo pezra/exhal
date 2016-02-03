@@ -107,12 +107,12 @@ defmodule ExHalFacts do
                                           } })
 
     test "links can be fetched by decuried rels" do
-      assert {:ok, [%ExHal.Link{href: "http://example.com", templated: _, name: _}] } =
+      assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
         ExHal.fetch(doc, "http://example.com/rels/foo")
     end
 
     test "links can be fetched by curied rels" do
-      assert {:ok, [%ExHal.Link{href: "http://example.com", templated: _, name: _}] } =
+      assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
         ExHal.fetch(doc, "app:foo")
     end
 
@@ -126,14 +126,14 @@ defmodule ExHalFacts do
                                           } } )
 
     test "templated links can be fetched" do
-      assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true, name: _}] } =
+      assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true}] } =
         ExHal.fetch(doc, "search")
     end
 
   end
 
 
-    defmodule HttpRequesting do
+  defmodule HttpRequesting do
     use ExUnit.Case, async: false
     use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
@@ -221,6 +221,16 @@ defmodule ExHalFacts do
       # exvcr fail
     end
 
+    test ".post w/ normal link" do
+      new_thing_hal = hal_str("http://example.com/new-thing")
+
+      stub_post_request "http://example.com/", [resp: new_thing_hal], fn ->
+        assert {:ok, (target = %Document{})} = ExHal.post(doc, "single", new_thing_hal)
+
+        assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      end
+    end
+
     defp doc do
       ExHal.Document.from_parsed_hal(
         %{"_links" =>
@@ -252,11 +262,10 @@ defmodule ExHalFacts do
     end
 
 
-    def stub_post_request(link, opts \\ %{}, block) do
-      {:ok, url} = Link.target_url(link)
+    def stub_post_request(url, opts \\ %{}, block) do
       resp = Dict.get opts, :resp, fn (_) -> hal_str(url) end
 
-      use_cassette :stub, [url: url, method: "post", body: resp, status_code: 201]  do
+      use_cassette :stub, [url: url, method: "post", request_body: resp, body: resp, status_code: 201]  do
         block.()
       end
     end

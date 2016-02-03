@@ -1,5 +1,9 @@
+
 ExHal
 =====
+
+[![Build Status](https://travis-ci.org/pezra/exhal.svg?branch=master)](https://travis-ci.org/pezra/exhal) 
+[![Hex.pm](https://img.shields.io/hexpm/v/exhal.svg)](https://hex.pm/packages/exhal)
 
 Use [HAL](http://stateless.co/hal_specification.html) APIs with ease.
 
@@ -67,6 +71,15 @@ ExHal.follow_link(doc, "profile", pick_volunteer: true)
 ExHal.follow_links(doc, "profile")
 [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}]
 
+ExHal.post(doc, "self", ~s|
+...> { "name": "http://example.com/new-thing",
+...>   "_links": {
+...>     "self": { "href": "http://example.com/new-thing" }
+...>   }
+...> }
+...> |)
+{:ok, %ExHal.Document{...}}
+
 ```
 
 Installation
@@ -75,5 +88,5 @@ Installation
 Add the following to your project `:deps` list:
 
 ```elixir
-{:exhal, "~>1.0"}
+{:exhal, "~>2.0"}
 ```

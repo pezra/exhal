@@ -105,17 +105,14 @@ defmodule ExHal.LinkTest do
     end
 
     test ".post w/ normal link" do
-      # unfortunately post stubbing doesn't seem to work in exvcr
+      link = ExHal.LinkTest.normal_link("http://example.com/")
+      new_thing_hal = hal_str("http://example.com/new-thing")
 
-      # link = ExHal.LinkTest.normal_link("http://example.com/")
-      # new_thing_hal = hal_str("http://example.com/new-thing")
+      stub_post_request link, [resp: new_thing_hal], fn ->
+        assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
 
-      # stub_post_request link, [resp: new_thing_hal], fn ->
-
-      #   assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
-
-      #   assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
-      # end
+        assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      end
     end
 
     def hal_str(url) do
@@ -138,7 +135,7 @@ defmodule ExHal.LinkTest do
       {:ok, url} = Link.target_url(link)
       resp = Dict.get opts, :resp, fn (_) -> hal_str(url) end
 
-      use_cassette :stub, [url: url, method: "post", body: resp, status_code: 201] do
+      use_cassette :stub, [url: url, method: "post", request_body: resp, body: resp, status_code: 201] do
         block.()
       end
     end
