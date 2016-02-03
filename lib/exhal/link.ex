@@ -37,10 +37,10 @@ defmodule ExHal.Link do
   """
   def target_url(a_link, vars \\ %{}) do
     case a_link do
-      %__MODULE__{href: nil} ->
+      %{href: nil} ->
         :error
 
-      %__MODULE__{templated: true} ->
+      %{templated: true} ->
         {:ok, UriTemplate.expand(a_link.href, vars)}
 
       _ ->
@@ -54,7 +54,7 @@ defmodule ExHal.Link do
   """
   def follow(link, vars \\ %{}) do
     case link do
-      %__MODULE__{target: (t = %Document{})} -> {:ok, t}
+      %{target: (t = %Document{})} -> {:ok, t}
 
       _ -> with_url link, vars, fn url ->
           extract_return HTTPoison.get(url, [], follow_redirect: true)

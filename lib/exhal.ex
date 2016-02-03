@@ -52,7 +52,7 @@ defmodule ExHal do
   ExHal.follow_link(doc, "profile")
   {:error, %ExHal.Error{reason: "multiple choices"}}
 
-  ExHal.follow_link(doc, "profile")
+  ExHal.follow_link(doc, "nonexistent")
   {:error, %ExHal.Error{reason: "no such link"}}
 
   ExHal.follow_link("self")
@@ -156,6 +156,7 @@ defmodule ExHal do
 
   @doc """
   Returns `{:ok, <url of specified document>}`
+          `:error`
   """
   def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
     case ExHal.fetch(a_doc, "self") do

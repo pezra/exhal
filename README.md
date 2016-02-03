@@ -55,7 +55,7 @@ ExHal can also make requests. Continuing the example above:
 ExHal.follow_link(doc, "profile")
 {:error, %ExHal.Error{reason: "multiple choices"}}
 
-ExHal.follow_link(doc, "profile")
+ExHal.follow_link(doc, "nonexistent")
 {:error, %ExHal.Error{reason: "no such link"}}
 
 ExHal.follow_link("self")
