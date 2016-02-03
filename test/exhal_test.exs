@@ -107,12 +107,12 @@ defmodule ExHalFacts do
                                           } })
 
     test "links can be fetched by decuried rels" do
-      assert {:ok, [%ExHal.Link{href: "http://example.com", templated: _, name: _}] } =
+      assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
         ExHal.fetch(doc, "http://example.com/rels/foo")
     end
 
     test "links can be fetched by curied rels" do
-      assert {:ok, [%ExHal.Link{href: "http://example.com", templated: _, name: _}] } =
+      assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
         ExHal.fetch(doc, "app:foo")
     end
 
@@ -126,7 +126,7 @@ defmodule ExHalFacts do
                                           } } )
 
     test "templated links can be fetched" do
-      assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true, name: _}] } =
+      assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true}] } =
         ExHal.fetch(doc, "search")
     end
 
