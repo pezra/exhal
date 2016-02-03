@@ -79,5 +79,5 @@ Installation
 Add the following to your project `:deps` list:
 
 ```elixir
-{:exhal, "~>1.0"}
+{:exhal, "~>2.0"}
 ```
