@@ -71,6 +71,15 @@ ExHal.follow_link(doc, "profile", pick_volunteer: true)
 ExHal.follow_links(doc, "profile")
 [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}]
 
+ExHal.post(doc, "self", ~s|
+...> { "name": "http://example.com/new-thing",
+...>   "_links": {
+...>     "self": { "href": "http://example.com/new-thing" }
+...>   }
+...> }
+...> |)
+{:ok, %ExHal.Document{...}}
+
 ```
 
 Installation

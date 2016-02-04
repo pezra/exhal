@@ -64,8 +64,15 @@ defmodule ExHal do
   ExHal.follow_links(doc, "profile")
   [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
 
+  ExHal.post(doc, "self", ~s|
+  ...> { "name": "http://example.com/new-thing",
+  ...>   "_links": {
+  ...>     "self": { "href": "http://example.com/new-thing" }
+  ...>   }
+  ...> }
+  ...> |)
+  {:ok, %ExHal.Document{...}}
   ```
-
   """
 
   alias ExHal.Link, as: Link
@@ -112,6 +119,19 @@ defmodule ExHal do
       links    -> Enum.map(links, fn link -> Link.follow(link, tmpl_vars) end)
     end
 
+  end
+
+  @doc """
+  Posts data to the named link in a HAL document.
+
+  Returns `{:error, %ExHal.Error{...}}` if request is an error
+          `{:ok,    %ExHal.Document{...}}` if not
+  """
+  def post(a_doc, name, body) do
+    case figure_link(a_doc, name, false) do
+      {:error, e} -> {:error, e}
+      {:ok, link} -> Link.post(link, body)
+    end
   end
 
   @doc """
