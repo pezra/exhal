@@ -5,13 +5,13 @@ defmodule ExHal.Document do
 
   alias ExHal.Link, as: Link
 
-  defstruct properties: %{}, links: %{}
+  defstruct properties: %{}, links: %{}, headers: %{}
 
   @doc """
   Returns new ExHal.Document
   """
-  def from_parsed_hal(parsed_hal) do
-    %__MODULE__{properties: properties_in(parsed_hal), links: links_in(parsed_hal)}
+  def from_parsed_hal(parsed_hal, opts \\ %{}) do
+    %__MODULE__{properties: properties_in(parsed_hal), links: links_in(parsed_hal), headers: headers_in(opts)}
   end
 
 
@@ -27,6 +27,10 @@ defmodule ExHal.Document do
     Enum.group_by(links, fn a_link -> a_link.rel end )
   end
 
+  defp headers_in(opts \\ %{}) do
+    if headers = Map.new(opts) |> Map.get(:headers), do: headers, else: []
+  end
+
   defp simple_links_in(parsed_json) do
     case Map.fetch(parsed_json, "_links") do
       {:ok, links} -> links_section_to_links(links)
@@ -36,7 +40,7 @@ defmodule ExHal.Document do
 
   defp links_section_to_links(links) do
     Enum.flat_map(links, fn {rel, l} ->
-      Enum.map(listify(l), &Link.from_links_entry(rel, &1)) end
+      List.wrap(l) |> Enum.map(&Link.from_links_entry(rel, &1)) end
     )
   end
 
@@ -49,16 +53,16 @@ defmodule ExHal.Document do
 
   defp embedded_section_to_links(links) do
     Enum.flat_map(links, fn {rel, l} ->
-      Enum.map(listify(l), &Link.from_embedded(rel, __MODULE__.from_parsed_hal(&1))) end
+      List.wrap(l) |> Enum.map(&Link.from_embedded(rel, __MODULE__.from_parsed_hal(&1))) end
     )
   end
 
   defp extract_namespaces(parsed_hal) do
-    links = Dict.get(parsed_hal, "_links", %{})
-    curies = Dict.get(links, "curies", []) |> listify
+    links  = Map.get(parsed_hal, "_links", %{})
+    curies = Map.get(links, "curies", []) |> List.wrap
 
     Enum.map(curies,
-      fn it -> {Dict.get(it, "name"), Dict.get(it, "href", "{rel}")} end
+      fn it -> {Map.get(it, "name"), Map.get(it, "href", "{rel}")} end
     )
     |> Enum.into(%{})
   end
@@ -66,13 +70,4 @@ defmodule ExHal.Document do
   defp expand_curies(links, namespaces) do
     Enum.flat_map(links, &Link.expand_curie(&1, namespaces))
   end
-
-  defp listify(link_entry) when is_map(link_entry) do
-    [link_entry]
-  end
-
-  defp listify(link_entry) when is_list(link_entry) do
-    link_entry
-  end
-
 end
