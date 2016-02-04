@@ -76,7 +76,6 @@ defmodule ExHal.LinkTest do
     test ".follow w/ normal link" do
       stub_request "http://example.com/", fn ->
         assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.normal_link)
-
         assert {:ok, "http://example.com/"} = ExHal.url(target)
       end
     end
@@ -85,8 +84,7 @@ defmodule ExHal.LinkTest do
       stub_request "http://example.com/?q=test", fn ->
         link = ExHal.LinkTest.templated_link("http://example.com/{?q}")
 
-        assert {:ok, (target = %Document{})} = Link.follow(link, q: "test")
-
+        assert {:ok, (target = %Document{})} = Link.follow(link, tmpl_vars: [q: "test"])
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
     end
@@ -94,7 +92,6 @@ defmodule ExHal.LinkTest do
     test ".follow w/ embedded link" do
       stub_request "http://example.com/embedded", fn ->
         assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link)
-
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
@@ -105,7 +102,6 @@ defmodule ExHal.LinkTest do
 
       stub_post_request link, [resp: new_thing_hal], fn ->
         assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
-
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end
     end

@@ -64,7 +64,7 @@ defmodule ExHal do
   ExHal.follow_links(doc, "profile")
   [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
 
-  ExHal.follow_links(doc, "profile", [], "Content-Type": "application/vnd.custom.json+type")
+  ExHal.follow_links(doc, "profile", headers: ["Content-Type": "application/vnd.custom.json+type"])
   [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
 
   ExHal.post(doc, "self", ~s|
@@ -97,15 +97,13 @@ defmodule ExHal do
   Returns `{:ok,    %ExHal.Document{...}}` if request is an error
           `{:error, %ExHal.Error{...}}` if not
   """
-  def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, pick_volunteer: false}, headers \\ []) do
+  def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, pick_volunteer: false, headers: []}) do
     opts = Map.new(opts)
-
     pick_volunteer? = Map.get opts, :pick_volunteer, false
-    tmpl_vars       = Map.get opts, :tmpl_vars, %{}
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.follow(link, tmpl_vars, headers)
+      {:ok, link} -> Link.follow(link, opts)
     end
 
   end
@@ -115,13 +113,12 @@ defmodule ExHal do
 
   Returns `[{:ok, %ExHal.Document{...}}, {:error, %ExHal.Error{...}, ...]`
   """
-  def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}}, headers \\ []) do
-    opts      = Map.new(opts)
-    tmpl_vars = Map.get opts, :tmpl_vars, %{}
+  def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}, headers: []}) do
+    opts = Map.new(opts)
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> {:error, %Error{reason: "no such link: #{name}"}}
-      links    -> Enum.map(links, fn link -> Link.follow(link, tmpl_vars, headers) end)
+      links    -> Enum.map(links, fn link -> Link.follow(link, opts) end)
     end
 
   end
