@@ -6,6 +6,7 @@ defmodule ExHal.Link do
 
   alias ExHal.Error, as: Error
   alias ExHal.Document, as: Document
+  alias ExHal.NsReg, as: NsReg
 
   defstruct [:rel, :href, :templated, :name, :target]
 
@@ -84,7 +85,7 @@ defmodule ExHal.Link do
     Returns `[%Link{}, ...]` a link struct for each possible variation of the input link
   """
   def expand_curie(link, namespaces) do
-    rel_variations(namespaces, link.rel)
+    NsReg.variations(namespaces, link.rel)
     |> Enum.map(fn rel -> %{link | rel: rel} end)
   end
 
@@ -100,18 +101,6 @@ defmodule ExHal.Link do
     case target_url(link, tmpl_vars) do
       {:ok, url} -> fun.(url)
       :error -> {:error, %Error{reason: "Unable to determine target url"} }
-    end
-  end
-
-  defp rel_variations(namespaces, rel) do
-    {ns, base} = case String.split(rel, ":", parts: 2) do
-                   [ns,base] -> {ns,base}
-                   [base]    -> {nil,base}
-                 end
-
-    case Map.fetch(namespaces, ns) do
-      {:ok, tmpl} -> [rel, UriTemplate.expand(tmpl, rel: base)]
-      :error      -> [rel]
     end
   end
 
