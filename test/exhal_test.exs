@@ -153,7 +153,7 @@ defmodule ExHalFacts do
     test ".follow_link w/ templated link" do
       stub_request "http://example.com/?q=test", fn ->
        assert {:ok, (target = %Document{})} =
-          ExHal.follow_link(doc, "tmpl", tmpl_vars: %{q: "test"})
+          ExHal.follow_link(doc, "tmpl", tmpl_vars: [q: "test"])
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
@@ -198,7 +198,7 @@ defmodule ExHalFacts do
     test ".follow_links w/ templated link" do
       stub_request "http://example.com/?q=test", fn ->
        assert [{:ok, (target = %Document{})}] =
-          ExHal.follow_links(doc, "tmpl", tmpl_vars: %{q: "test"})
+          ExHal.follow_links(doc, "tmpl", tmpl_vars: [q: "test"])
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
@@ -263,7 +263,8 @@ defmodule ExHalFacts do
 
 
     def stub_post_request(url, opts \\ %{}, block) do
-      resp = Dict.get opts, :resp, fn (_) -> hal_str(url) end
+      opts = Map.new(opts)
+      resp = Map.get opts, :resp, fn (_) -> hal_str(url) end
 
       use_cassette :stub, [url: url, method: "post", request_body: resp, body: resp, status_code: 201]  do
         block.()

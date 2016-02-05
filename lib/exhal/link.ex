@@ -52,12 +52,16 @@ defmodule ExHal.Link do
   Returns `{:ok, %ExHal.Document{}}`    - representation of the target of the specifyed link
           `{:error, %ExHal.Document{}}` - non-2XX responses that have a HAL body
   """
-  def follow(link, vars \\ %{}) do
+  def follow(link, opts \\ %{}) do
+    opts      = Map.new(opts)
+    tmpl_vars = Map.get opts, :tmpl_vars, %{}
+    headers   = Map.get(opts, :headers, []) |> Keyword.new
+
     case link do
       %{target: (t = %Document{})} -> {:ok, t}
 
-      _ -> with_url link, vars, fn url ->
-          extract_return HTTPoison.get(url, [], follow_redirect: true)
+      _ -> with_url link, tmpl_vars, fn url ->
+          extract_return HTTPoison.get(url, headers, follow_redirect: true)
         end
     end
   end
@@ -65,9 +69,12 @@ defmodule ExHal.Link do
   @doc """
   Makes a POST request against the target of the link.
   """
-  def post(link, body) do
+  def post(link, body, opts \\ %{headers: []}) do
+    vars    = Map.new(opts)
+    headers = Map.get(opts, :headers, []) |> Keyword.new
+
     with_url link, fn url ->
-      extract_return HTTPoison.post(url, body, [], follow_redirect: true)
+      extract_return HTTPoison.post(url, body, headers, follow_redirect: true)
     end
   end
 
@@ -102,14 +109,14 @@ defmodule ExHal.Link do
                    [base]    -> {nil,base}
                  end
 
-    case Dict.fetch(namespaces, ns) do
+    case Map.fetch(namespaces, ns) do
       {:ok, tmpl} -> [rel, UriTemplate.expand(tmpl, rel: base)]
       :error      -> [rel]
     end
   end
 
   defp extract_doc(resp) do
-    doc = ExHal.parse(resp.body)
+    doc  = ExHal.parse(resp.body, headers: resp.headers)
     code = resp.status_code
 
     cond do

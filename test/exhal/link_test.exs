@@ -1,6 +1,6 @@
 defmodule ExHal.LinkTest do
   use ExUnit.Case, async: true
-#  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
   alias ExHal.Link, as: Link
   alias ExHal.Document, as: Document
@@ -72,15 +72,10 @@ defmodule ExHal.LinkTest do
     use ExUnit.Case, async: false
     use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
-    setup_all do
-      ExVCR.Config.cassette_library_dir(__DIR__, __DIR__)
-      :ok
-    end
 
     test ".follow w/ normal link" do
       stub_request "http://example.com/", fn ->
         assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.normal_link)
-
         assert {:ok, "http://example.com/"} = ExHal.url(target)
       end
     end
@@ -89,17 +84,14 @@ defmodule ExHal.LinkTest do
       stub_request "http://example.com/?q=test", fn ->
         link = ExHal.LinkTest.templated_link("http://example.com/{?q}")
 
-        assert {:ok, (target = %Document{})} = Link.follow(link, q: "test")
-
+        assert {:ok, (target = %Document{})} = Link.follow(link, tmpl_vars: [q: "test"])
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
     end
 
     test ".follow w/ embedded link" do
       stub_request "http://example.com/embedded", fn ->
-        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link,
-                                                           q: "test")
-
+        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link)
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
@@ -110,7 +102,6 @@ defmodule ExHal.LinkTest do
 
       stub_post_request link, [resp: new_thing_hal], fn ->
         assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
-
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end
     end
@@ -133,7 +124,9 @@ defmodule ExHal.LinkTest do
 
     def stub_post_request(link, opts \\ %{}, block) do
       {:ok, url} = Link.target_url(link)
-      resp = Dict.get opts, :resp, fn (_) -> hal_str(url) end
+
+      opts = Map.new(opts)
+      resp = Map.get opts, :resp, fn (_) -> hal_str(url) end
 
       use_cassette :stub, [url: url, method: "post", request_body: resp, body: resp, status_code: 201] do
         block.()

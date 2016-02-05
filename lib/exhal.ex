@@ -14,7 +14,7 @@ defmodule ExHal do
   ...>   }
   ...> }
   ...> |)
-  %ExHal.Document{links: %{"profile" => [%ExHal.Link{name: nil, rel: "profile", target: nil,
+  %ExHal.Document{headers: [], links: %{"profile" => [%ExHal.Link{name: nil, rel: "profile", target: nil,
                 href: "http://example.com/normal", templated: false},
                %ExHal.Link{name: nil, rel: "profile", target: nil, href: "http://example.com/special",
                 templated: false}],
@@ -64,6 +64,9 @@ defmodule ExHal do
   ExHal.follow_links(doc, "profile")
   [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
 
+  ExHal.follow_links(doc, "profile", headers: ["Content-Type": "application/vnd.custom.json+type"])
+  [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+
   ExHal.post(doc, "self", ~s|
   ...> { "name": "http://example.com/new-thing",
   ...>   "_links": {
@@ -72,6 +75,7 @@ defmodule ExHal do
   ...> }
   ...> |)
   {:ok, %ExHal.Document{...}}
+
   ```
   """
 
@@ -82,10 +86,9 @@ defmodule ExHal do
   @doc """
   Returns a new `%ExHal.Document` representing the HAL document provided.
   """
-  def parse(hal_str) do
+  def parse(hal_str, opts \\ %{}) do
     parsed = Poison.Parser.parse!(hal_str)
-
-    Document.from_parsed_hal(parsed)
+    Document.from_parsed_hal(parsed, opts)
   end
 
   @doc """
@@ -94,13 +97,13 @@ defmodule ExHal do
   Returns `{:ok,    %ExHal.Document{...}}` if request is an error
           `{:error, %ExHal.Error{...}}` if not
   """
-  def follow_link(a_doc, name, opts \\ %{pick_volunteer: false, tmpl_vars: %{}}) do
-    pick_volunteer? = Dict.get opts, :pick_volunteer, false
-    tmpl_vars = Dict.get opts, :tmpl_vars, %{}
+  def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, pick_volunteer: false, headers: []}) do
+    opts = Map.new(opts)
+    pick_volunteer? = Map.get opts, :pick_volunteer, false
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.follow(link, tmpl_vars)
+      {:ok, link} -> Link.follow(link, opts)
     end
 
   end
@@ -110,13 +113,12 @@ defmodule ExHal do
 
   Returns `[{:ok, %ExHal.Document{...}}, {:error, %ExHal.Error{...}, ...]`
   """
-  def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}}) do
-    tmpl_vars = Dict.get opts, :tmpl_vars, %{}
+  def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}, headers: []}) do
+    opts = Map.new(opts)
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> {:error, %Error{reason: "no such link: #{name}"}}
-
-      links    -> Enum.map(links, fn link -> Link.follow(link, tmpl_vars) end)
+      links    -> Enum.map(links, fn link -> Link.follow(link, opts) end)
     end
 
   end
@@ -163,7 +165,7 @@ defmodule ExHal do
           result of `default_fun` otherwise
   """
   def get_property_lazy(a_doc, prop_name, default_fun) do
-    Dict.get_lazy(a_doc.properties, prop_name, default_fun)
+    Map.get_lazy(a_doc.properties, prop_name, default_fun)
   end
 
   @doc """
@@ -171,7 +173,7 @@ defmodule ExHal do
           result of `default_fun` otherwise
   """
   def get_links_lazy(a_doc, link_name, default_fun) do
-    Dict.get_lazy(a_doc.links, link_name, default_fun)
+    Map.get_lazy(a_doc.links, link_name, default_fun)
   end
 
   @doc """
