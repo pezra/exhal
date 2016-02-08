@@ -3,7 +3,8 @@ defmodule ExHal.Document do
     A document is the representaion of a single resource in HAL.
   """
 
-  alias ExHal.Link, as: Link
+  alias ExHal.Link
+  alias ExHal.NsReg
 
   defstruct properties: %{}, links: %{}, headers: %{}
 
@@ -20,7 +21,7 @@ defmodule ExHal.Document do
   end
 
   defp links_in(parsed_json) do
-    namespaces = extract_namespaces(parsed_json)
+    namespaces = NsReg.from_parsed_json(parsed_json)
     raw_links = simple_links_in(parsed_json) ++ embedded_links_in(parsed_json)
     links = expand_curies(raw_links, namespaces)
 
@@ -55,16 +56,6 @@ defmodule ExHal.Document do
     Enum.flat_map(links, fn {rel, l} ->
       List.wrap(l) |> Enum.map(&Link.from_embedded(rel, __MODULE__.from_parsed_hal(&1))) end
     )
-  end
-
-  defp extract_namespaces(parsed_hal) do
-    links  = Map.get(parsed_hal, "_links", %{})
-    curies = Map.get(links, "curies", []) |> List.wrap
-
-    Enum.map(curies,
-      fn it -> {Map.get(it, "name"), Map.get(it, "href", "{rel}")} end
-    )
-    |> Enum.into(%{})
   end
 
   defp expand_curies(links, namespaces) do
