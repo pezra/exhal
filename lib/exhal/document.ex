@@ -3,8 +3,8 @@ defmodule ExHal.Document do
     A document is the representaion of a single resource in HAL.
   """
 
-  alias ExHal.Link, as: Link
-  alias ExHal.NsReg, as: NsReg
+  alias ExHal.Link
+  alias ExHal.NsReg
 
   defstruct properties: %{}, links: %{}, headers: %{}
 

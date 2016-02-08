@@ -4,9 +4,9 @@ defmodule ExHal.Link do
     are found in the `_links` and `_embedded` sections of a HAL document
   """
 
-  alias ExHal.Error, as: Error
-  alias ExHal.Document, as: Document
-  alias ExHal.NsReg, as: NsReg
+  alias ExHal.Error
+  alias ExHal.Document
+  alias ExHal.NsReg
 
   defstruct [:rel, :href, :templated, :name, :target]
 

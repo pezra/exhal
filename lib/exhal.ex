@@ -79,9 +79,9 @@ defmodule ExHal do
   ```
   """
 
-  alias ExHal.Link, as: Link
-  alias ExHal.Document, as: Document
-  alias ExHal.Error, as: Error
+  alias ExHal.Link
+  alias ExHal.Document
+  alias ExHal.Error
 
   @doc """
   Returns a new `%ExHal.Document` representing the HAL document provided.
