@@ -80,7 +80,7 @@ defmodule ExHal do
     opts = Map.new(opts)
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
-      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+      :missing -> [{:error, %Error{reason: "no such link: #{name}"}}]
       links    -> Enum.map(links, fn link -> Link.follow(link, a_doc.client, opts) end)
     end
 

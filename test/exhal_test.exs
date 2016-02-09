@@ -206,7 +206,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_links w/ non-existent rel" do
-      assert {:error, %ExHal.Error{}} = ExHal.follow_links(doc, "absent")
+      assert [{:error, %ExHal.Error{}}] = ExHal.follow_links(doc, "absent")
     end
 
     test ".follow_links w/ multiple links" do
