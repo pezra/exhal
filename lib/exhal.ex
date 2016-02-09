@@ -1,94 +1,57 @@
 defmodule ExHal do
   @moduledoc """
-  Use HAL APIs with ease.
+    Use HAL APIs with ease.
 
-  ## Example
-  ```elixir
+    ## Example
 
-  iex> doc = ExHal.parse(~s|
-  ...> { "name": "Hello!",
-  ...>    "_links": {
-  ...>      "self"   : { "href": "http://example.com" },
-  ...>      "profile": [{ "href": "http://example.com/special" },
-  ...>                  { "href": "http://example.com/normal" }]
-  ...>   }
-  ...> }
-  ...> |)
-  %ExHal.Document{headers: [], links: %{"profile" => [%ExHal.Link{name: nil, rel: "profile", target: nil,
-                href: "http://example.com/normal", templated: false},
-               %ExHal.Link{name: nil, rel: "profile", target: nil, href: "http://example.com/special",
-                templated: false}],
-              "self" => [%ExHal.Link{name: nil, rel: "self", target: nil, href: "http://example.com",
-                templated: false}]}, properties: %{"name" => "Hello!"}}
-  iex> ExHal.url(doc)
-  {:ok, "http://example.com"}
-  iex> ExHal.fetch(doc, "name")
-  {:ok, "Hello!"}
-  iex> ExHal.fetch(doc, "non-existent")
-  :error
-  iex> ExHal.fetch(doc, "profile")
-  {:ok,
-   [%ExHal.Link{name: nil, rel: "profile", target: nil,
-                href: "http://example.com/normal",
-                templated: false},
-    %ExHal.Link{name: nil, rel: "profile", target: nil,
-                href: "http://example.com/special",
-                templated: false}]}
-  iex> ExHal.get_links_lazy(doc, "profile", fn -> [] end)
-  [%ExHal.Link{name: nil, rel: "profile", target: nil,
-               href: "http://example.com/normal",
-               templated: false},
-   %ExHal.Link{name: nil, rel: "profile", target: nil,
-               href: "http://example.com/special",
-               templated: false}]
-  iex> ExHal.get_links_lazy(doc, "alternate", fn -> [] end)
-  []
+    Consider a resource `http://example.com/hal` whose HAL representation looks like
 
-  ```
+    ```json
+    { "name": "Hello!",
+      "_links": {
+         "self"   : { "href": "http://example.com" },
+          "profile": [{ "href": "http://example.com/special" },
+                      { "href": "http://example.com/normal" }]
+      }
+    }
+    ```
 
-  ExHal can also make requests. Continuing the example above:
+    ```elixir
+    iex> doc = ExHal.client
+    ...> |> ExHal.Client.with_headers("User-Agent": "MyClient/1.0")
+    ...> |> ExHal.Client.get("http://example.com/hal")
+    %ExHal.Document{...}
 
-  ```elixir
-  ExHal.follow_link(doc, "profile")
-  {:error, %ExHal.Error{reason: "multiple choices"}}
+    iex> ExHal.follow_link(doc, "profile")
+    {:error, %ExHal.Error{reason: "multiple choices"}}
 
-  ExHal.follow_link(doc, "nonexistent")
-  {:error, %ExHal.Error{reason: "no such link"}}
+    iex> ExHal.follow_link(doc, "nonexistent")
+    {:error, %ExHal.Error{reason: "no such link"}}
 
-  ExHal.follow_link("self")
-  {:ok, %ExHal.Document{...}}
+    iex> ExHal.follow_link("self")
+    {:ok, %ExHal.Document{...}}
 
-  ExHal.follow_link(doc, "profile", pick_volunteer: true)
-  {:ok, %ExHal.Document{...}}
+    iex> ExHal.follow_link(doc, "profile", pick_volunteer: true)
+    {:ok, %ExHal.Document{...}}
 
-  ExHal.follow_links(doc, "profile")
-  [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+    iex> ExHal.follow_links(doc, "profile")
+    [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
 
-  ExHal.follow_links(doc, "profile", headers: ["Content-Type": "application/vnd.custom.json+type"])
-  [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
-
-  ExHal.post(doc, "self", ~s|
-  ...> { "name": "http://example.com/new-thing",
-  ...>   "_links": {
-  ...>     "self": { "href": "http://example.com/new-thing" }
-  ...>   }
-  ...> }
-  ...> |)
-  {:ok, %ExHal.Document{...}}
-
-  ```
-  """
+    iex> ExHal.follow_links(doc, "profile", headers: ["Content-Type": "application/vnd.custom.json+type"])
+    [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+    ```
+    """
 
   alias ExHal.Link
   alias ExHal.Document
   alias ExHal.Error
+  alias ExHal.Client
 
   @doc """
-  Returns a new `%ExHal.Document` representing the HAL document provided.
-  """
-  def parse(hal_str, opts \\ %{}) do
-    parsed = Poison.Parser.parse!(hal_str)
-    Document.from_parsed_hal(parsed, opts)
+    Returns a default client
+    """
+  def client do
+    %Client{}
   end
 
   @doc """
@@ -103,7 +66,7 @@ defmodule ExHal do
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.follow(link, opts)
+      {:ok, link} -> Link.follow(link, a_doc.client, opts)
     end
 
   end
@@ -118,7 +81,7 @@ defmodule ExHal do
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> {:error, %Error{reason: "no such link: #{name}"}}
-      links    -> Enum.map(links, fn link -> Link.follow(link, opts) end)
+      links    -> Enum.map(links, fn link -> Link.follow(link, a_doc.client, opts) end)
     end
 
   end
@@ -132,7 +95,7 @@ defmodule ExHal do
   def post(a_doc, name, body) do
     case figure_link(a_doc, name, false) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.post(link, body)
+      {:ok, link} -> Link.post(link, body, a_doc.client)
     end
   end
 

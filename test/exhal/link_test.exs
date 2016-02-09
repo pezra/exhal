@@ -30,7 +30,7 @@ defmodule ExHal.LinkTest do
   end
 
   test ".from_embedded w/o self link" do
-    embedded_doc = Document.from_parsed_hal(%{ "name" => "foo" })
+    embedded_doc = Document.from_parsed_hal(ExHal.client, %{ "name" => "foo" })
     link = Link.from_embedded("foo", embedded_doc)
 
     assert %Link{href: nil}         = link
@@ -45,7 +45,7 @@ defmodule ExHal.LinkTest do
                       "self" => %{ "href" => "http://example.com" }
                             }
                   }
-    embedded_doc = Document.from_parsed_hal(parsed_hal)
+    embedded_doc = Document.from_parsed_hal(ExHal.client, parsed_hal)
     link = Link.from_embedded("foo", embedded_doc)
 
     assert %Link{href: "http://example.com"} = link
@@ -72,36 +72,42 @@ defmodule ExHal.LinkTest do
     use ExUnit.Case, async: false
     use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
+    setup do
+      client = %ExHal.Client{}
+      {:ok, [client: client,
+             embedded_link: ExHal.LinkTest.embedded_link(client)]}
+    end
 
-    test ".follow w/ normal link" do
+    test ".follow w/ normal link", context do
       stub_request "http://example.com/", fn ->
-        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.normal_link)
+        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.normal_link, context[:client])
         assert {:ok, "http://example.com/"} = ExHal.url(target)
       end
     end
 
-    test ".follow w/ templated link" do
+    test ".follow w/ templated link", context do
       stub_request "http://example.com/?q=test", fn ->
         link = ExHal.LinkTest.templated_link("http://example.com/{?q}")
 
-        assert {:ok, (target = %Document{})} = Link.follow(link, tmpl_vars: [q: "test"])
+        assert {:ok, (target = %Document{})} = Link.follow(link, context[:client], tmpl_vars: [q: "test"])
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
     end
 
-    test ".follow w/ embedded link" do
+    test ".follow w/ embedded link", context do
       stub_request "http://example.com/embedded", fn ->
-        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link)
+        assert {:ok, (target = %Document{})} = Link.follow(context[:embedded_link],
+                                                           context[:client])
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
-    test ".post w/ normal link" do
+    test ".post w/ normal link", context do
       link = ExHal.LinkTest.normal_link("http://example.com/")
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       stub_post_request link, [resp: new_thing_hal], fn ->
-        assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
+        assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal, context[:client])
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end
     end
@@ -148,13 +154,13 @@ defmodule ExHal.LinkTest do
     Link.from_links_entry("foo", link_entry)
   end
 
-  def embedded_link(url \\ "http://example.com/embedded") do
+  def embedded_link(client, url \\ "http://example.com/embedded") do
     parsed_hal = %{"name" => url,
                    "_links" =>
                      %{ "self" => %{ "href" => url }
                       }
                   }
-    target_doc = Document.from_parsed_hal(parsed_hal)
+    target_doc = Document.from_parsed_hal(client, parsed_hal)
 
     Link.from_embedded("foo", target_doc)
   end
