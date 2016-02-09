@@ -82,6 +82,7 @@ defmodule ExHal do
   alias ExHal.Link
   alias ExHal.Document
   alias ExHal.Error
+  alias ExHal.Client
 
   @doc """
   Returns a new `%ExHal.Document` representing the HAL document provided.
@@ -103,7 +104,7 @@ defmodule ExHal do
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.follow(link, opts)
+      {:ok, link} -> Link.follow(link, %Client{}, opts)
     end
 
   end
@@ -118,7 +119,7 @@ defmodule ExHal do
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> {:error, %Error{reason: "no such link: #{name}"}}
-      links    -> Enum.map(links, fn link -> Link.follow(link, opts) end)
+      links    -> Enum.map(links, fn link -> Link.follow(link, %Client{}, opts) end)
     end
 
   end
@@ -132,7 +133,7 @@ defmodule ExHal do
   def post(a_doc, name, body) do
     case figure_link(a_doc, name, false) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.post(link, body)
+      {:ok, link} -> Link.post(link, body, %Client{})
     end
   end
 

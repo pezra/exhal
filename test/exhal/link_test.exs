@@ -72,36 +72,39 @@ defmodule ExHal.LinkTest do
     use ExUnit.Case, async: false
     use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
+    setup do
+      {:ok, [client: %ExHal.Client{}]}
+    end
 
-    test ".follow w/ normal link" do
+    test ".follow w/ normal link", context do
       stub_request "http://example.com/", fn ->
-        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.normal_link)
+        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.normal_link, context[:client])
         assert {:ok, "http://example.com/"} = ExHal.url(target)
       end
     end
 
-    test ".follow w/ templated link" do
+    test ".follow w/ templated link", context do
       stub_request "http://example.com/?q=test", fn ->
         link = ExHal.LinkTest.templated_link("http://example.com/{?q}")
 
-        assert {:ok, (target = %Document{})} = Link.follow(link, tmpl_vars: [q: "test"])
+        assert {:ok, (target = %Document{})} = Link.follow(link, context[:client], tmpl_vars: [q: "test"])
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
     end
 
-    test ".follow w/ embedded link" do
+    test ".follow w/ embedded link", context do
       stub_request "http://example.com/embedded", fn ->
-        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link)
+        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link, context[:client])
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
-    test ".post w/ normal link" do
+    test ".post w/ normal link", context do
       link = ExHal.LinkTest.normal_link("http://example.com/")
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       stub_post_request link, [resp: new_thing_hal], fn ->
-        assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal)
+        assert {:ok, (target = %Document{})} = Link.post(link, new_thing_hal, context[:client])
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end
     end

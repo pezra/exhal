@@ -7,6 +7,7 @@ defmodule ExHal.Link do
   alias ExHal.Error
   alias ExHal.Document
   alias ExHal.NsReg
+  alias ExHal.Client
 
   defstruct [:rel, :href, :templated, :name, :target]
 
@@ -53,7 +54,7 @@ defmodule ExHal.Link do
   Returns `{:ok, %ExHal.Document{}}`    - representation of the target of the specifyed link
           `{:error, %ExHal.Document{}}` - non-2XX responses that have a HAL body
   """
-  def follow(link, opts \\ %{}) do
+  def follow(link, client, opts \\ %{})  do
     opts      = Map.new(opts)
     tmpl_vars = Map.get opts, :tmpl_vars, %{}
     headers   = Map.get(opts, :headers, []) |> Keyword.new
@@ -62,7 +63,7 @@ defmodule ExHal.Link do
       %{target: (t = %Document{})} -> {:ok, t}
 
       _ -> with_url link, tmpl_vars, fn url ->
-          extract_return HTTPoison.get(url, headers, follow_redirect: true)
+          Client.get(url, client, headers: headers)
         end
     end
   end
@@ -70,12 +71,12 @@ defmodule ExHal.Link do
   @doc """
   Makes a POST request against the target of the link.
   """
-  def post(link, body, opts \\ %{headers: []}) do
-    vars    = Map.new(opts)
+  def post(link, body, client, opts \\ %{headers: []}) do
+    opts    = Map.new(opts)
     headers = Map.get(opts, :headers, []) |> Keyword.new
 
     with_url link, fn url ->
-      extract_return HTTPoison.post(url, body, headers, follow_redirect: true)
+      Client.post(url, body, client, headers: headers)
     end
   end
 
@@ -89,14 +90,6 @@ defmodule ExHal.Link do
     |> Enum.map(fn rel -> %{link | rel: rel} end)
   end
 
-  defp extract_return(http_resp) do
-    case http_resp do
-      {:error, err} -> {:error, %ExHal.Error{reason: err.reason} }
-
-      {:ok, resp} -> extract_doc(resp)
-    end
-  end
-
   defp with_url(link, tmpl_vars \\ %{}, fun) do
     case target_url(link, tmpl_vars) do
       {:ok, url} -> fun.(url)
@@ -104,13 +97,4 @@ defmodule ExHal.Link do
     end
   end
 
-  defp extract_doc(resp) do
-    doc  = ExHal.parse(resp.body, headers: resp.headers)
-    code = resp.status_code
-
-    cond do
-      Enum.member?(200..299, code) -> {:ok, doc}
-      true ->  {:error, doc}
-    end
-  end
 end
