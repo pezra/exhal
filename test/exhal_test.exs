@@ -2,22 +2,13 @@ Code.require_file "../test_helper.exs", __ENV__.file
 
 defmodule ExHalFacts do
   use ExUnit.Case, async: true
-  doctest ExHal
 
-  alias ExHal.Document, as: Document
-
-  test "ExHal parses valid, empty HAL documents" do
-    assert_is_hal_document ExHal.parse "{}"
-  end
-
-  test "ExHal parses valid, non-empty HAL documents" do
-    assert_is_hal_document ExHal.parse "{}"
-  end
+  alias ExHal.Document
 
   defmodule DocWithProperties do
     use ExUnit.Case, async: true
 
-    defp doc, do: ExHal.parse ~s({"one": 1})
+    defp doc, do: Document.parse ExHal.client, ~s({"one": 1})
 
     test "properties can be retrieved" do
       assert {:ok, 1} = ExHal.fetch(doc, "one")
@@ -41,16 +32,16 @@ defmodule ExHalFacts do
 
 
     defp doc_with_self_link do
-      ExHal.parse ~s({"_links": { "self": {"href": "http://example.com"}}})
+      Document.parse ExHal.client, ~s({"_links": { "self": {"href": "http://example.com"}}})
     end
     defp doc_sans_self_link do
-      ExHal.parse ~s({"_links": { }})
+      Document.parse ExHal.client, ~s({"_links": { }})
     end
   end
 
   defmodule DocWithWithLinks do
     use ExUnit.Case, async: true
-    defp doc, do: ExHal.parse ~s({"_links": { "profile": {"href": "http://example.com"}}})
+    defp doc, do: Document.parse ExHal.client, ~s({"_links": { "profile": {"href": "http://example.com"}}})
 
     test "links can be fetched" do
       assert {:ok, [%ExHal.Link{href: "http://example.com", templated: false}] } =
@@ -64,7 +55,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithWithEmbeddedLinks do
     use ExUnit.Case, async: true
-    defp doc, do: ExHal.parse ~s({"_embedded": {
+    defp doc, do: Document.parse ExHal.client, ~s({"_embedded": {
                                      "profile": {
                                        "name": "Peter",
                                        "_links": {
@@ -85,7 +76,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithWithDuplicateLinks do
     use ExUnit.Case, async: true
-    defp doc, do: ExHal.parse ~s({"_links": {
+    defp doc, do: Document.parse ExHal.client, ~s({"_links": {
                                      "item": [
                                        {"href": "http://example.com/1"},
                                        {"href": "http://example.com/2"}
@@ -99,7 +90,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithCuriedLinks do
     use ExUnit.Case, async: true
-    defp doc, do: ExHal.parse ~s({"_links": {
+    defp doc, do: Document.parse ExHal.client, ~s({"_links": {
                                      "app:foo": { "href": "http://example.com" },
                                      "curies": [ { "name": "app",
                                                    "href": "http://example.com/rels/{rel}",
@@ -120,7 +111,8 @@ defmodule ExHalFacts do
 
   defmodule DocWithTemplatedLinks do
     use ExUnit.Case, async: true
-    defp doc, do: ExHal.parse ~s({"_links": {
+    defp doc, do: Document.parse ExHal.client, ~s(
+                                    {"_links": {
                                      "search": { "href": "http://example.com/{?q}",
                                                  "templated": true }
                                           } } )
@@ -232,7 +224,7 @@ defmodule ExHalFacts do
     end
 
     defp doc do
-      ExHal.Document.from_parsed_hal(
+      ExHal.Document.from_parsed_hal(ExHal.client,
         %{"_links" =>
            %{"single" => %{ "href" => "http://example.com/" },
              "tmpl" => %{ "href" => "http://example.com/{?q}", "templated" => true },
@@ -272,9 +264,4 @@ defmodule ExHalFacts do
     end
   end
 
-  # Background
-
-  defp assert_is_hal_document(actual)  do
-    assert %ExHal.Document{properties: _, links: _} = actual
-  end
 end

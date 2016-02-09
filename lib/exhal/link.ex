@@ -63,7 +63,7 @@ defmodule ExHal.Link do
       %{target: (t = %Document{})} -> {:ok, t}
 
       _ -> with_url link, tmpl_vars, fn url ->
-          Client.get(url, client, headers: headers)
+          Client.get(client, url, headers: headers)
         end
     end
   end
@@ -72,11 +72,12 @@ defmodule ExHal.Link do
   Makes a POST request against the target of the link.
   """
   def post(link, body, client, opts \\ %{headers: []}) do
-    opts    = Map.new(opts)
-    headers = Map.get(opts, :headers, []) |> Keyword.new
+    opts      = Map.new(opts)
+    tmpl_vars = Map.get opts, :tmpl_vars, %{}
+    headers   = Map.get(opts, :headers, []) |> Keyword.new
 
-    with_url link, fn url ->
-      Client.post(url, body, client, headers: headers)
+    with_url link, tmpl_vars, fn url ->
+      Client.post(client, url, body, headers: headers)
     end
   end
 
@@ -90,7 +91,7 @@ defmodule ExHal.Link do
     |> Enum.map(fn rel -> %{link | rel: rel} end)
   end
 
-  defp with_url(link, tmpl_vars \\ %{}, fun) do
+  defp with_url(link, tmpl_vars, fun) do
     case target_url(link, tmpl_vars) do
       {:ok, url} -> fun.(url)
       :error -> {:error, %Error{reason: "Unable to determine target url"} }

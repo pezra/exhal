@@ -30,7 +30,7 @@ defmodule ExHal.LinkTest do
   end
 
   test ".from_embedded w/o self link" do
-    embedded_doc = Document.from_parsed_hal(%{ "name" => "foo" })
+    embedded_doc = Document.from_parsed_hal(ExHal.client, %{ "name" => "foo" })
     link = Link.from_embedded("foo", embedded_doc)
 
     assert %Link{href: nil}         = link
@@ -45,7 +45,7 @@ defmodule ExHal.LinkTest do
                       "self" => %{ "href" => "http://example.com" }
                             }
                   }
-    embedded_doc = Document.from_parsed_hal(parsed_hal)
+    embedded_doc = Document.from_parsed_hal(ExHal.client, parsed_hal)
     link = Link.from_embedded("foo", embedded_doc)
 
     assert %Link{href: "http://example.com"} = link
@@ -73,7 +73,9 @@ defmodule ExHal.LinkTest do
     use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
 
     setup do
-      {:ok, [client: %ExHal.Client{}]}
+      client = %ExHal.Client{}
+      {:ok, [client: client,
+             embedded_link: ExHal.LinkTest.embedded_link(client)]}
     end
 
     test ".follow w/ normal link", context do
@@ -94,7 +96,8 @@ defmodule ExHal.LinkTest do
 
     test ".follow w/ embedded link", context do
       stub_request "http://example.com/embedded", fn ->
-        assert {:ok, (target = %Document{})} = Link.follow(ExHal.LinkTest.embedded_link, context[:client])
+        assert {:ok, (target = %Document{})} = Link.follow(context[:embedded_link],
+                                                           context[:client])
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
@@ -151,13 +154,13 @@ defmodule ExHal.LinkTest do
     Link.from_links_entry("foo", link_entry)
   end
 
-  def embedded_link(url \\ "http://example.com/embedded") do
+  def embedded_link(client, url \\ "http://example.com/embedded") do
     parsed_hal = %{"name" => url,
                    "_links" =>
                      %{ "self" => %{ "href" => url }
                       }
                   }
-    target_doc = Document.from_parsed_hal(parsed_hal)
+    target_doc = Document.from_parsed_hal(client, parsed_hal)
 
     Link.from_embedded("foo", target_doc)
   end
