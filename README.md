@@ -32,7 +32,7 @@ iex> doc = ExHal.client
 Now we have an entry point to the API we can follow links to navigate around.
 
 ```exlixir
-iex> ExHal.follow_link(doc, "profile", pick_volunteer: true)
+iex> ExHal.follow_link(doc, "profile")
 {:ok, %ExHal.Document{...}}
 
 iex> ExHal.follow_link("self")
@@ -57,7 +57,7 @@ If we try to follow a non-existent or compound link with `ExHal.follow_link` it 
 iex> ExHal.follow_link(doc, "nonexistent")
 {:error, %ExHal.Error{reason: "no such link"}}
 
-iex> ExHal.follow_link(doc, "profile")
+iex> ExHal.follow_link(doc, "profile", strict: true)
 {:error, %ExHal.Error{reason: "multiple choices"}}
 ```
 
