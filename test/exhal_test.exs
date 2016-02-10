@@ -164,14 +164,14 @@ defmodule ExHalFacts do
       assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc, "absent")
     end
 
-    test ".follow_link w/ multiple links" do
-      assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc, "multiple")
+    test ".follow_link w/ multiple links with strict true fails" do
+      assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc, "multiple", strict: true)
     end
 
-    test ".follow_link w/ multiple links and volunteer" do
+    test ".follow_link w/ multiple links" do
       stub_request "~r/http:\/\/example.com\/[12]/", fn ->
         assert {:ok, (target = %Document{})} =
-          ExHal.follow_link(doc, "multiple", pick_volunteer: true)
+          ExHal.follow_link(doc, "multiple")
 
         assert {:ok, _} = ExHal.url(target)
       end
