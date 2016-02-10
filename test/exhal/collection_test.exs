@@ -6,7 +6,7 @@ defmodule ExHal.CollectionTest do
   alias ExHal.Collection
   alias ExHal.Client
 
-  test ".to_stream(non_collection_doc) fails", ctx do
+  test ".to_stream(non_collection_doc) succeeds", ctx do
     assert Collection.to_stream(ctx[:non_collection_doc]) |> is_a_stream
   end
 
@@ -40,6 +40,10 @@ defmodule ExHal.CollectionTest do
       assert Enum.any? subject, has_doc_with_name("second")
       assert Enum.any? subject, has_doc_with_name("last")
     end
+  end
+
+  test "ExHal.to_stream(sinlge_page_collection_doc) works", ctx do
+    assert ExHal.to_stream(ctx[:single_page_collection_doc]) |> is_a_stream
   end
 
 

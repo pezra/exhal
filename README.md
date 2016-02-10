@@ -97,7 +97,7 @@ If we get the first HAL collection resource and turn it into a stream we can use
 iex> collection = ExHal.client
 ...> |> ExHal.Client.add_headers("User-Agent": "MyClient/1.0")
 ...> |> ExHal.Client.get("http://example.com/hal-collection")
-...> |> ExHal.Collection.to_stream
+...> |> ExHal.to_stream
 #Function<11.52512309/2 in Stream.resource/3>
 
 iex> Stream.map(collection, fn follow_results ->
