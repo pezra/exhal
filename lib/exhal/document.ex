@@ -25,6 +25,12 @@ defmodule ExHal.Document do
                 links: links_in(client, parsed_hal)}
   end
 
+  @doc """
+    Returns true iff the document contains at least one link with the specified rel.
+    """
+  def has_link?(doc, rel) do
+    Map.has_key?(doc.links, rel)
+  end
 
   defp properties_in(parsed_json) do
     Map.drop(parsed_json, ["_links", "_embedded"])

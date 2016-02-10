@@ -57,8 +57,8 @@ defmodule ExHal do
   @doc """
   Follows a link in a HAL document.
 
-  Returns `{:ok,    %ExHal.Document{...}}` if request is an error
-          `{:error, %ExHal.Error{...}}` if not
+  Returns `{:ok,    %ExHal.Document{...}}` if request is an error or
+  `{:error, %ExHal.Error{...}}` if not
   """
   def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, pick_volunteer: false, headers: []}) do
     opts = Map.new(opts)
@@ -80,7 +80,7 @@ defmodule ExHal do
     opts = Map.new(opts)
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
-      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+      :missing -> [{:error, %Error{reason: "no such link: #{name}"}}]
       links    -> Enum.map(links, fn link -> Link.follow(link, a_doc.client, opts) end)
     end
 
@@ -124,30 +124,36 @@ defmodule ExHal do
   end
 
   @doc """
-  Returns `<property value>` when property exists
-          result of `default_fun` otherwise
+  Returns `<property value>` when property exists or result of `default_fun`
+  otherwise
   """
   def get_property_lazy(a_doc, prop_name, default_fun) do
     Map.get_lazy(a_doc.properties, prop_name, default_fun)
   end
 
   @doc """
-  Returns `[%Link{}...]`     when link exists
-          result of `default_fun` otherwise
+  Returns `[%Link{}...]` when link exists or result of `default_fun` otherwise.
   """
   def get_links_lazy(a_doc, link_name, default_fun) do
     Map.get_lazy(a_doc.links, link_name, default_fun)
   end
 
   @doc """
-  Returns `{:ok, <url of specified document>}`
-          `:error`
+  Returns `{:ok, <url of specified document>}` or `:error`.
   """
   def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
     case ExHal.fetch(a_doc, "self") do
       :error            -> default_fn.(a_doc)
       {:ok, [link | _]} -> Link.target_url(link)
     end
+  end
+
+  @doc """
+    Returns a stream that yields the items in the rfc 6573 collection
+    represented by `a_doc`.
+    """
+  def to_stream(a_doc) do
+    ExHal.Collection.to_stream(a_doc)
   end
 
   defp figure_link(a_doc, name, pick_volunteer?) do
