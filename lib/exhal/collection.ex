@@ -3,15 +3,10 @@ defmodule ExHal.Collection do
     Utility functions for dealing with RFC 6473 collections
     """
 
-  alias ExHal.Document
-  alias ExHal.Error
-
   @doc """
     Returns a stream that iterate over the collection represented by `a_doc`.
     """
   def to_stream(a_doc) do
-    first_page_getter = fn -> a_doc end
-
     Stream.resource(
       fn -> {:ok, a_doc} end,
       fn follow_result ->
@@ -21,7 +16,7 @@ defmodule ExHal.Collection do
                            ExHal.follow_link(page, "next", pick_volunteer: true)}
         end
       end,
-      fn _ -> end
+      fn _ -> nil end
     )
   end
 end

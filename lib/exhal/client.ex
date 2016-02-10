@@ -35,7 +35,7 @@ defmodule ExHal.Client do
 
   defp merge_headers(old_headers, new_headers) do
     old_headers
-    |> Keyword.merge(new_headers, fn (k,v1,v2) -> List.wrap(v1) ++ List.wrap(v2) end)
+    |> Keyword.merge(new_headers, fn (_k,v1,v2) -> List.wrap(v1) ++ List.wrap(v2) end)
   end
 
   defp extract_return(http_resp, client) do
