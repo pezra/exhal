@@ -47,12 +47,19 @@ defmodule ExHal.Client do
   end
 
   defp extract_doc(client, resp) do
-    doc  = Document.parse(client, resp.body)
+    doc = extract_body_as_doc(client, resp.body)
     code = resp.status_code
 
     cond do
       Enum.member?(200..299, code) -> {:ok, doc}
       true ->  {:error, doc}
+    end
+  end
+
+  defp extract_body_as_doc(client, body) do
+    case body do
+      "" -> %Document{}
+      _ -> Document.parse(client, body)
     end
   end
 
