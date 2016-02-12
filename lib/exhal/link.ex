@@ -91,6 +91,21 @@ defmodule ExHal.Link do
     |> Enum.map(fn rel -> %{link | rel: rel} end)
   end
 
+  def embedded?(link) do
+    !!link.target
+  end
+
+  def to_json_hash(link) do
+    if embedded?(link) do
+      Document.to_json_hash(link.target)
+    else
+      hash = %{"href" => link.href}
+      if !!link.templated, do: hash = Map.merge(hash, %{"templated" => true})
+      if !!link.name, do: hash = Map.merge(hash, %{"name" => link.name})
+      hash
+    end
+  end
+
   defp with_url(link, tmpl_vars, fun) do
     case target_url(link, tmpl_vars) do
       {:ok, url} -> fun.(url)

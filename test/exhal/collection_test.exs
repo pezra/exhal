@@ -6,6 +6,16 @@ defmodule ExHal.CollectionTest do
   alias ExHal.Collection
   alias ExHal.Client
 
+  test ".to_json_hash", context do
+    parsed_hal = %{
+      "name" => "My Name",
+      "_embedded" => %{ "test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
+      "_links" => %{ "self" => %{"href" => "http://example.com/my-name"}}}
+
+    doc = Document.from_parsed_hal(context[:client], parsed_hal)
+    assert %{"_embedded" => %{"item" => [^parsed_hal]}} = Collection.to_json_hash([doc])
+  end
+
   test ".to_stream(non_collection_doc) succeeds", ctx do
     assert Collection.to_stream(ctx[:non_collection_doc]) |> is_a_stream
   end

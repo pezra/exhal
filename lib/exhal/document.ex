@@ -6,7 +6,7 @@ defmodule ExHal.Document do
   alias ExHal.Link
   alias ExHal.NsReg
 
-  defstruct properties: %{}, links: %{}, client: 
+  defstruct properties: %{}, links: %{}, client:
 
   @doc """
     Returns a new `%ExHal.Document` representing the HAL document provided.
@@ -17,8 +17,8 @@ defmodule ExHal.Document do
   end
 
   @doc """
-  Returns new ExHal.Document
-  """
+    Returns new ExHal.Document
+    """
   def from_parsed_hal(client, parsed_hal) do
     %__MODULE__{client: client,
                 properties: properties_in(parsed_hal),
@@ -32,8 +32,42 @@ defmodule ExHal.Document do
     Map.has_key?(doc.links, rel)
   end
 
+  @doc """
+    Returns a map that matches the shape of the intended JSON output.
+    """
+  def to_json_hash(doc) do
+    doc.properties
+    |> Map.merge(links_sections_to_json_hash(doc))
+  end
+
+  defp links_sections_to_json_hash(doc) do
+    {embedded, references} = doc.links
+    |> Map.to_list
+    |> Enum.flat_map(fn ({_,v}) -> v end)
+    |> Enum.partition(&(Link.embedded?(&1)))
+
+    %{"_embedded" => render_links(embedded),
+      "_links" => render_links(references)}
+  end
+
+  defp render_links(enum) do
+    enum
+    |> Enum.group_by(&(&1.rel))
+    |> Map.to_list
+    |> Enum.map(fn ({rel, links}) -> {rel, Enum.map(links, &Link.to_json_hash(&1))} end)
+    |> Enum.map(fn ({rel, fragments}) -> {rel, unbox_single_fragments(fragments)} end)
+    |> Map.new
+  end
+
   defp properties_in(parsed_json) do
     Map.drop(parsed_json, ["_links", "_embedded"])
+  end
+
+  defp unbox_single_fragments(fragments) do
+    case fragments do
+      [fragment] -> fragment
+      _ -> fragments
+    end
   end
 
   defp links_in(client, parsed_json) do
