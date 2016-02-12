@@ -68,6 +68,11 @@ defmodule ExHal.LinkTest do
                                                                   %{q: "hello"})
   end
 
+  test ".embedded?" do
+    assert true == Link.embedded?(%Link{target: %Document{}})
+    assert false == Link.embedded?(%Link{href: "https://aa/resource"})
+  end
+
   defmodule HttpRequesting do
     use ExUnit.Case, async: false
     use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
