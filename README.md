@@ -2,7 +2,7 @@
 ExHal
 =====
 
-[![Build Status](https://travis-ci.org/pezra/exhal.svg?branch=master)](https://travis-ci.org/pezra/exhal) 
+[![Build Status](https://travis-ci.org/pezra/exhal.svg?branch=master)](https://travis-ci.org/pezra/exhal)
 [![Hex.pm](https://img.shields.io/hexpm/v/exhal.svg)](https://hex.pm/packages/exhal)
 
 An easy to use [HAL](http://stateless.co/hal_specification.html) API client for elixir.
@@ -109,6 +109,17 @@ iex> Stream.map(collection, fn follow_results ->
 ["http://example.com/beginning", "http://example.com/middle", "http://example.com/end"]
 ```
 
+### Serialization
+
+Collections and Document can render themselves to a json-like
+structure that can then be serialized using your favorite json encoder
+(e.g. Poison):
+
+    ExHal.Collection.to_json_hash([ex_hal_doc]) |> Poison.encode!
+
+or
+
+    ExHal.Document.to_json_hash(ex_hal_doc) |> Poison.encode!
 
 
 Installation
