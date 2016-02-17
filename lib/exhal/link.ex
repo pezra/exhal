@@ -62,37 +62,6 @@ defmodule ExHal.Link do
   end
 
   @doc """
-  Returns `{:ok, %ExHal.Document{}}`    - representation of the target of the specifyed link
-          `{:error, %ExHal.Document{}}` - non-2XX responses that have a HAL body
-  """
-  def follow(link, client, opts \\ %{})  do
-    opts      = Map.new(opts)
-    tmpl_vars = Map.get opts, :tmpl_vars, %{}
-    headers   = Map.get(opts, :headers, []) |> Keyword.new
-
-    case link do
-      %{target: (t = %Document{})} -> {:ok, t}
-
-      _ -> with_url link, tmpl_vars, fn url ->
-          Client.get(client, url, headers: headers)
-        end
-    end
-  end
-
-  @doc """
-  Makes a POST request against the target of the link.
-  """
-  def post(link, body, client, opts \\ %{headers: []}) do
-    opts      = Map.new(opts)
-    tmpl_vars = Map.get opts, :tmpl_vars, %{}
-    headers   = Map.get(opts, :headers, []) |> Keyword.new
-
-    with_url link, tmpl_vars, fn url ->
-      Client.post(client, url, body, headers: headers)
-    end
-  end
-
-  @doc """
     Expands "curie"d link rels using the namespaces found in the `curies` link.
 
     Returns `[%Link{}, ...]` a link struct for each possible variation of the input link

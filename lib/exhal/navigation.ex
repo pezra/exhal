@@ -13,10 +13,11 @@ defmodule ExHal.Navigation do
   def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, strict: false, headers: []}) do
     opts = Map.new(opts)
     pick_volunteer? = !(Map.get opts, :strict, false)
+    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Link.follow(link, a_doc.client, opts)
+      {:ok, link} -> _follow_link(a_doc.client, link, tmpl_vars, opts)
     end
 
   end
@@ -28,10 +29,11 @@ defmodule ExHal.Navigation do
   """
   def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}, headers: []}) do
     opts = Map.new(opts)
+    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> [{:error, %Error{reason: "no such link: #{name}"}}]
-      links    -> Enum.map(links, fn link -> Link.follow(link, a_doc.client, opts) end)
+      links    -> Enum.map(links, &_follow_link(a_doc.client, &1, tmpl_vars, opts))
     end
 
   end
@@ -84,4 +86,12 @@ defmodule ExHal.Navigation do
     end
   end
 
+  defp _follow_link(client, link, tmpl_vars, opts) do
+    cond do
+      Link.embedded?(link) ->
+        {:ok, link.target}
+      :else ->
+        Client.get(client, Link.target_url!(link, tmpl_vars), opts)
+    end
+  end
 end

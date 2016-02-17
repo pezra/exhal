@@ -1,6 +1,6 @@
 Code.require_file "support/request_stubbing.exs", __DIR__
 
-defmodule ExHalFacts do
+defmodule ExHalTest do
   use ExUnit.Case, async: true
 
   alias ExHal.Document
@@ -156,7 +156,7 @@ defmodule ExHalFacts do
         assert {:ok, (target = %Document{})} =
           ExHal.follow_link(doc, "embedded")
 
-        assert {:ok, "http://example.com/e"} = ExHal.url(target)
+        assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
@@ -201,7 +201,7 @@ defmodule ExHalFacts do
         assert [{:ok, (target = %Document{})}] =
           ExHal.follow_links(doc, "embedded")
 
-        assert {:ok, "http://example.com/e"} = ExHal.url(target)
+        assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
@@ -232,7 +232,7 @@ defmodule ExHalFacts do
                             %{ "href" => "http://example.com/2" }]
             },
           "_embedded" =>
-            %{"embedded" => %{"_links" => %{"self" => %{"href" => "http://example.com/e"}}}}
+            %{"embedded" => %{"_links" => %{"self" => %{"href" => "http://example.com/embedded"}}}}
          }
       )
     end
