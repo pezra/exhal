@@ -24,6 +24,13 @@ defmodule ExHal.Client do
     |> extract_return(client)
   end
 
+  def put(client, url, body, opts \\ []) do
+    {headers, poison_opts} = figure_headers_and_opt(opts, client)
+
+    HTTPoison.put(url, body, headers, poison_opts)
+    |> extract_return(client)
+  end
+
   defp figure_headers_and_opt(opts, client) do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])
 
