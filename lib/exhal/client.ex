@@ -31,6 +31,7 @@ defmodule ExHal.Client do
     |> extract_return(client)
   end
 
+
   defp figure_headers_and_opt(opts, client) do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])
 

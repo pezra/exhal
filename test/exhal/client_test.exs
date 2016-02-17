@@ -1,3 +1,5 @@
+Code.require_file "../support/request_stubbing.exs", __DIR__
+
 defmodule ExHal.ClientTest do
   use ExUnit.Case, async: true
 
@@ -10,7 +12,6 @@ defmodule ExHal.ClientTest do
     |> to_have_header("hello", ["bob", "alice", "jane"])
   end
 
-
   # background
 
   defp to_have_header(client, expected_name, expected_value) do
@@ -18,5 +19,67 @@ defmodule ExHal.ClientTest do
     {:ok, actual_value} = Keyword.fetch(client.headers, expected_name)
 
     actual_value == expected_value
+  end
+end
+
+defmodule ExHal.ClientHttpRequestTest do
+  use ExUnit.Case, async: false
+  use RequestStubbing
+
+  alias ExHal.Client
+  alias ExHal.Document
+
+  test ".get w/ normal link", %{client: client} do
+    thing_hal = hal_str("http://example.com/thing")
+
+    stub_request "get", url: "http://example.com/", resp_body: thing_hal do
+      assert {:ok, (target = %Document{})} =
+        Client.get(client, "http://example.com/")
+
+      assert {:ok, "http://example.com/thing"} = ExHal.url(target)
+    end
+  end
+
+  test ".post w/ normal link", %{client: client} do
+    new_thing_hal = hal_str("http://example.com/new-thing")
+
+    stub_request "post", url: "http://example.com/",
+                         req_body: new_thing_hal,
+                         resp_body: new_thing_hal do
+      assert {:ok, (target = %Document{})} =
+        Client.post(client, "http://example.com/", new_thing_hal)
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+    end
+  end
+
+  test ".put w/ normal link", %{client: client} do
+    new_thing_hal = hal_str("http://example.com/new-thing")
+
+    stub_request "put", url: "http://example.com/",
+                        req_body: "the request body",
+                        resp_body: new_thing_hal do
+      assert {:ok, (target = %Document{})} =
+        Client.put(client, "http://example.com/", "the request body")
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+    end
+  end
+
+
+  # Background
+
+  setup do
+    {:ok, client: %Client{}}
+  end
+
+  def hal_str(url) do
+    """
+      { "name": "#{url}",
+        "_links": {
+          "self": { "href": "#{url}" }
+        }
+      }
+      """
   end
 end
