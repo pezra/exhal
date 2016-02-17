@@ -51,6 +51,17 @@ defmodule ExHal.Link do
   end
 
   @doc """
+    Returns target url, expanded with `vars` if any are provided.
+
+    Returns `"fully_qualified_url"` or raises exception
+  """
+  def target_url!(a_link, vars \\ %{}) do
+    {:ok, url} = target_url(a_link, vars)
+
+    url
+  end
+
+  @doc """
   Returns `{:ok, %ExHal.Document{}}`    - representation of the target of the specifyed link
           `{:error, %ExHal.Document{}}` - non-2XX responses that have a HAL body
   """
