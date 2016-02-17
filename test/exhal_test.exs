@@ -1,4 +1,4 @@
-Code.require_file "../test_helper.exs", __ENV__.file
+Code.require_file "support/request_stubbing.exs", __DIR__
 
 defmodule ExHalFacts do
   use ExUnit.Case, async: true
@@ -127,7 +127,7 @@ defmodule ExHalFacts do
 
   defmodule HttpRequesting do
     use ExUnit.Case, async: false
-    use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+    use RequestStubbing
 
     setup_all do
       ExVCR.Config.cassette_library_dir(__DIR__, __DIR__)
@@ -135,7 +135,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_link w/ normal link" do
-      stub_request "http://example.com/", fn ->
+      stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
         assert {:ok, (target = %Document{})} = ExHal.follow_link(doc, "single")
 
         assert {:ok, "http://example.com/"} = ExHal.url(target)
@@ -143,7 +143,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_link w/ templated link" do
-      stub_request "http://example.com/?q=test", fn ->
+      stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
        assert {:ok, (target = %Document{})} =
           ExHal.follow_link(doc, "tmpl", tmpl_vars: [q: "test"])
 
@@ -152,7 +152,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_link w/ embedded link" do
-      stub_request "http://example.com/embedded", fn ->
+      stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
         assert {:ok, (target = %Document{})} =
           ExHal.follow_link(doc, "embedded")
 
@@ -169,7 +169,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_link w/ multiple links" do
-      stub_request "~r/http:\/\/example.com\/[12]/", fn ->
+      stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str("") do
         assert {:ok, (target = %Document{})} =
           ExHal.follow_link(doc, "multiple")
 
@@ -179,7 +179,7 @@ defmodule ExHalFacts do
 
 
     test ".follow_links w/ single link" do
-      stub_request "http://example.com/", fn ->
+      stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
         assert [{:ok, (target = %Document{})}] = ExHal.follow_links(doc, "single")
 
         assert {:ok, "http://example.com/"} = ExHal.url(target)
@@ -188,7 +188,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_links w/ templated link" do
-      stub_request "http://example.com/?q=test", fn ->
+      stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
        assert [{:ok, (target = %Document{})}] =
           ExHal.follow_links(doc, "tmpl", tmpl_vars: [q: "test"])
 
@@ -197,7 +197,7 @@ defmodule ExHalFacts do
     end
 
     test ".follow_links w/ embedded link" do
-      stub_request "http://example.com/embedded", fn ->
+      stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
         assert [{:ok, (target = %Document{})}] =
           ExHal.follow_links(doc, "embedded")
 
@@ -216,7 +216,7 @@ defmodule ExHalFacts do
     test ".post w/ normal link" do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
-      stub_post_request "http://example.com/", [resp: new_thing_hal], fn ->
+      stub_request "post", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
         assert {:ok, (target = %Document{})} = ExHal.post(doc, "single", new_thing_hal)
 
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
@@ -247,21 +247,6 @@ defmodule ExHalFacts do
       """
     end
 
-    def stub_request(url, block) do
-      use_cassette :stub, [url: url, body: hal_str(url), status_code: 200] do
-        block.()
-      end
-    end
-
-
-    def stub_post_request(url, opts \\ %{}, block) do
-      opts = Map.new(opts)
-      resp = Map.get opts, :resp, fn (_) -> hal_str(url) end
-
-      use_cassette :stub, [url: url, method: "post", request_body: resp, body: resp, status_code: 201]  do
-        block.()
-      end
-    end
   end
 
 end
