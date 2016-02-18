@@ -12,6 +12,9 @@ defimpl ExHal.Locatable, for: ExHal.NonHalResponse do
   alias ExHal.Link
 
   def url(a_resp) do
-    Keyword.get(a_resp.headers, :Location, :error)
+    a_resp.headers
+    |> Enum.find({nil, :error},
+      fn {field_name, value} -> Regex.match?(~r/(content-)?location/i, field_name) end)
+    |> (fn {_,url} -> url end).()
   end
 end
