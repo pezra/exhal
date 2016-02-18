@@ -1,6 +1,8 @@
+Code.require_file "../support/request_stubbing.exs", __DIR__
+
 defmodule ExHal.CollectionTest do
   use ExUnit.Case, async: true
-  use ExVCR.Mock, adapter: ExVCR.Adapter.Hackney
+  use RequestStubbing
 
   alias ExHal.Document
   alias ExHal.Collection
@@ -32,18 +34,24 @@ defmodule ExHal.CollectionTest do
     assert Collection.to_stream(ctx[:multi_page_collection_doc]) |> is_a_stream
   end
 
-  test ".to_stream(single_page_collection_doc) contains all items", ctx do
-    subject = Collection.to_stream(ctx[:single_page_collection_doc])
+  test ".to_stream(single_page_collection_doc) contains all items", %{
+    single_page_collection_doc: single_page_collection_doc
+  } do
+    subject = Collection.to_stream(single_page_collection_doc)
     assert 2 == Enum.count(subject)
     assert Enum.all? subject, fn x -> {:ok, _} = x end
     assert Enum.any? subject, has_doc_with_name("first")
     assert Enum.any? subject, has_doc_with_name("second")
   end
 
-  test ".to_stream(multi_page_collection_doc) contains all items", ctx do
-    subject = Collection.to_stream(ctx[:multi_page_collection_doc])
+  test ".to_stream(multi_page_collection_doc) contains all items", %{
+    last_page_collection_url: last_page_collection_url,
+    last_page_collection_hal_str: last_page_collection_hal_str,
+    multi_page_collection_doc: multi_page_collection_doc
+  } do
+    subject = Collection.to_stream(multi_page_collection_doc)
 
-    stub_request ctx[:last_page_collection_url], ctx[:last_page_collection_hal_str], fn ->
+    stub_request "get", url: last_page_collection_url, resp_body: last_page_collection_hal_str do
       assert 3 == Enum.count(subject)
       assert Enum.all? subject, fn x -> {:ok, _} = x end
       assert Enum.any? subject, has_doc_with_name("first")
@@ -123,12 +131,6 @@ defmodule ExHal.CollectionTest do
         {:ok, doc} -> ExHal.get_property_lazy(doc, "name", fn -> :missing end) == expected
         _ -> false
       end
-    end
-  end
-
-  def stub_request(url, body, block) do
-    use_cassette :stub, [url: url, body: body, status_code: 200] do
-      block.()
     end
   end
 end

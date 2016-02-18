@@ -1,6 +1,6 @@
 Code.require_file "support/request_stubbing.exs", __DIR__
 
-defmodule ExHalFacts do
+defmodule ExHalTest do
   use ExUnit.Case, async: true
 
   alias ExHal.Document
@@ -8,7 +8,7 @@ defmodule ExHalFacts do
   defmodule DocWithProperties do
     use ExUnit.Case, async: true
 
-    defp doc, do: Document.parse ExHal.client, ~s({"one": 1})
+    defp doc, do: Document.parse! ExHal.client, ~s({"one": 1})
 
     test "properties can be retrieved" do
       assert {:ok, 1} = ExHal.fetch(doc, "one")
@@ -32,16 +32,16 @@ defmodule ExHalFacts do
 
 
     defp doc_with_self_link do
-      Document.parse ExHal.client, ~s({"_links": { "self": {"href": "http://example.com"}}})
+      Document.parse! ExHal.client, ~s({"_links": { "self": {"href": "http://example.com"}}})
     end
     defp doc_sans_self_link do
-      Document.parse ExHal.client, ~s({"_links": { }})
+      Document.parse! ExHal.client, ~s({"_links": { }})
     end
   end
 
   defmodule DocWithWithLinks do
     use ExUnit.Case, async: true
-    defp doc, do: Document.parse ExHal.client, ~s({"_links": { "profile": {"href": "http://example.com"}}})
+    defp doc, do: Document.parse! ExHal.client, ~s({"_links": { "profile": {"href": "http://example.com"}}})
 
     test "links can be fetched" do
       assert {:ok, [%ExHal.Link{href: "http://example.com", templated: false}] } =
@@ -55,7 +55,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithWithEmbeddedLinks do
     use ExUnit.Case, async: true
-    defp doc, do: Document.parse ExHal.client, ~s({"_embedded": {
+    defp doc, do: Document.parse! ExHal.client, ~s({"_embedded": {
                                      "profile": {
                                        "name": "Peter",
                                        "_links": {
@@ -76,7 +76,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithWithDuplicateLinks do
     use ExUnit.Case, async: true
-    defp doc, do: Document.parse ExHal.client, ~s({"_links": {
+    defp doc, do: Document.parse! ExHal.client, ~s({"_links": {
                                      "item": [
                                        {"href": "http://example.com/1"},
                                        {"href": "http://example.com/2"}
@@ -90,7 +90,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithCuriedLinks do
     use ExUnit.Case, async: true
-    defp doc, do: Document.parse ExHal.client, ~s({"_links": {
+    defp doc, do: Document.parse! ExHal.client, ~s({"_links": {
                                      "app:foo": { "href": "http://example.com" },
                                      "curies": [ { "name": "app",
                                                    "href": "http://example.com/rels/{rel}",
@@ -111,7 +111,7 @@ defmodule ExHalFacts do
 
   defmodule DocWithTemplatedLinks do
     use ExUnit.Case, async: true
-    defp doc, do: Document.parse ExHal.client, ~s(
+    defp doc, do: Document.parse! ExHal.client, ~s(
                                     {"_links": {
                                      "search": { "href": "http://example.com/{?q}",
                                                  "templated": true }
@@ -156,7 +156,7 @@ defmodule ExHalFacts do
         assert {:ok, (target = %Document{})} =
           ExHal.follow_link(doc, "embedded")
 
-        assert {:ok, "http://example.com/e"} = ExHal.url(target)
+        assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
@@ -201,7 +201,7 @@ defmodule ExHalFacts do
         assert [{:ok, (target = %Document{})}] =
           ExHal.follow_links(doc, "embedded")
 
-        assert {:ok, "http://example.com/e"} = ExHal.url(target)
+        assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
@@ -232,7 +232,7 @@ defmodule ExHalFacts do
                             %{ "href" => "http://example.com/2" }]
             },
           "_embedded" =>
-            %{"embedded" => %{"_links" => %{"self" => %{"href" => "http://example.com/e"}}}}
+            %{"embedded" => %{"_links" => %{"self" => %{"href" => "http://example.com/embedded"}}}}
          }
       )
     end
