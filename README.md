@@ -31,7 +31,7 @@ iex> doc = ExHal.client
 
 ### Navigation
 
-Now we have an entry point to the API we can follow links to navigate around.
+Now we have an entry point to the API. From there we can follow links to navigate around.
 
 ```exlixir
 iex> ExHal.follow_link(doc, "profile")
