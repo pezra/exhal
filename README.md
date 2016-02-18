@@ -29,6 +29,8 @@ iex> doc = ExHal.client
 %ExHal.Document{...}
 ```
 
+### Navigation
+
 Now we have an entry point to the API we can follow links to navigate around.
 
 ```exlixir
@@ -67,6 +69,34 @@ If we try to follow a non-existent with `ExHal.follow_links` it will return a li
 iex> ExHal.follow_links(doc, "nonexistent")
 [{:error, %ExHal.Error{reason: "no such link"}}]
 ```
+
+### Actions
+
+If you want to take an action (ie, make a PUT, POST, etc) request you can do that too.
+
+```elixir
+name_change = """
+  { "name": "Bye!",
+    "_links": {
+       "self"   : { "href": "http://example.com" },
+       "profile": [{ "href": "http://example.com/special" },
+       { "href": "http://example.com/normal" }]
+    }
+  }
+  """
+
+# make a request that returns a HAL response
+iex> ExHal.put(doc, "self", name_change)
+{:ok, %ExHal.Document{...}}
+
+# make a request that just returns a response without without a body
+iex> {:ok, resp} = ExHal.post(doc, "add-child", "{\"name\": \"child\"}")
+{:ok, %ExHal.NonHalResponse{status_code: 201, headers: ["Location" => "http://example.com/child", ...], body: ""}}
+iex> ExHal.url(resp)
+"http://example.com/child"
+
+```
+
 
 ### Collections
 

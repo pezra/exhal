@@ -12,8 +12,18 @@ defmodule ExHal.Document do
     Returns a new `%ExHal.Document` representing the HAL document provided.
     """
   def parse(client, hal_str) do
-    parsed = Poison.Parser.parse!(hal_str)
-    from_parsed_hal(client, parsed)
+    case Poison.Parser.parse(hal_str) do
+      {:ok, parsed} -> {:ok, from_parsed_hal(client, parsed)}
+      r -> r 
+    end
+  end
+
+  @doc """
+    Returns a new `%ExHal.Document` representing the HAL document provided.
+    """
+  def parse!(client, hal_str) do
+    {:ok, doc} = parse(client, hal_str)
+    doc
   end
 
   @doc """
@@ -59,6 +69,7 @@ defmodule ExHal.Document do
     |> Map.new
   end
 
+  
   defp properties_in(parsed_json) do
     Map.drop(parsed_json, ["_links", "_embedded"])
   end
@@ -107,5 +118,16 @@ defmodule ExHal.Document do
 
   defp expand_curies(links, namespaces) do
     Enum.flat_map(links, &Link.expand_curie(&1, namespaces))
+  end
+end
+
+defimpl ExHal.Locatable, for: ExHal.Document do
+  alias ExHal.Link
+
+  def url(a_doc) do
+    case ExHal.get_links_lazy(a_doc, "self", fn -> :error end) do
+      :error     -> :error
+      [link | _] -> Link.target_url(link)
+    end
   end
 end

@@ -28,6 +28,7 @@ defmodule ExHal.ClientHttpRequestTest do
 
   alias ExHal.Client
   alias ExHal.Document
+  alias ExHal.NonHalResponse
 
   test ".get w/ normal link", %{client: client} do
     thing_hal = hal_str("http://example.com/thing")
@@ -50,6 +51,15 @@ defmodule ExHal.ClientHttpRequestTest do
         Client.post(client, "http://example.com/", new_thing_hal)
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+    end
+  end
+
+  test ".post with empty response", %{client: client} do
+    stub_request "post", url: "http://example.com/",
+                         req_body: "post body",
+                         resp_body: "" do
+      assert {:ok, %NonHalResponse{}} =
+        Client.post(client, "http://example.com/", "post body")
     end
   end
 

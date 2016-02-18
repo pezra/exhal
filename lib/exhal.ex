@@ -166,9 +166,9 @@ defmodule ExHal do
   Returns `{:ok, <url of specified document>}` or `:error`.
   """
   def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
-    case ExHal.fetch(a_doc, "self") do
-      :error            -> default_fn.(a_doc)
-      {:ok, [link | _]} -> Link.target_url(link)
+    case ExHal.Locatable.url(a_doc) do
+      :error -> default_fn.(a_doc)
+      url    -> url
     end
   end
 
@@ -179,5 +179,5 @@ defmodule ExHal do
   def to_stream(a_doc) do
     ExHal.Collection.to_stream(a_doc)
   end
-
 end
+

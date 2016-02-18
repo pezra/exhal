@@ -1,6 +1,7 @@
 defmodule ExHal.Client do
 
   alias ExHal.Document
+  alias ExHal.NonHalResponse
 
   defstruct headers: [], opts: [follow_redirects: true]
 
@@ -55,7 +56,7 @@ defmodule ExHal.Client do
   end
 
   defp extract_doc(client, resp) do
-    doc = extract_body_as_doc(client, resp.body)
+    doc = extract_body_as_doc(client, resp)
     code = resp.status_code
 
     cond do
@@ -64,10 +65,10 @@ defmodule ExHal.Client do
     end
   end
 
-  defp extract_body_as_doc(client, body) do
-    case body do
-      "" -> %Document{}
-      _ -> Document.parse(client, body)
+  defp extract_body_as_doc(client, resp) do
+    case Document.parse(client, resp.body) do
+      {:ok, doc} -> doc
+      {:error, _} -> NonHalResponse.from_httpoison_response(resp)
     end
   end
 
