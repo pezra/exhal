@@ -89,9 +89,9 @@ name_change = """
 iex> ExHal.put(doc, "self", name_change)
 {:ok, %ExHal.Document{...}}
 
-# make a request that just returns a response without without a body
+# make a request that just returns a response without a body
 iex> {:ok, resp} = ExHal.post(doc, "add-child", "{\"name\": \"child\"}")
-{:ok, %ExHal.NonHalResponse{status_code: 201, headers: ["Location" => "http://example.com/child", ...], body: ""}}
+{:ok, %ExHal.NonHalResponse{status_code: 201, headers: [{"Location", "http://example.com/child"}, ...], body: ""}}
 iex> ExHal.url(resp)
 "http://example.com/child"
 
