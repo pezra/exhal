@@ -4,10 +4,7 @@ defmodule ExHal.Link do
     are found in the `_links` and `_embedded` sections of a HAL document
   """
 
-  alias ExHal.Error
-  alias ExHal.Document
-  alias ExHal.NsReg
-  alias ExHal.Client
+  alias ExHal.{Document,NsReg}
 
   defstruct [:rel, :href, :templated, :name, :target]
 
@@ -85,12 +82,4 @@ defmodule ExHal.Link do
       hash
     end
   end
-
-  defp with_url(link, tmpl_vars, fun) do
-    case target_url(link, tmpl_vars) do
-      {:ok, url} -> fun.(url)
-      :error -> {:error, %Error{reason: "Unable to determine target url"} }
-    end
-  end
-
 end

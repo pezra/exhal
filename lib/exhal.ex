@@ -103,10 +103,7 @@ defmodule ExHal do
     """
 
 
-  alias ExHal.Link
-  alias ExHal.Error
-  alias ExHal.Client
-  alias ExHal.Navigation
+  alias ExHal.{Client,Navigation}
 
   @doc """
     Returns a default client
