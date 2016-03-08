@@ -115,13 +115,19 @@ defmodule ExHal do
     %Client{}
   end
 
-  defdelegate [follow_link(a_doc, name),
-               follow_link(a_doc, name, opts),
-               follow_links(a_doc, name),
-               follow_links(a_doc, name, opts),
-               post(a_doc, name, body),
-               post(a_doc, name, body, opts)],
-               to: Navigation
+  defdelegate [
+    follow_link(a_doc, name),
+    follow_link(a_doc, name, opts),
+
+    follow_links(a_doc, name),
+    follow_links(a_doc, name, opts),
+
+    post(a_doc, name, body),
+    post(a_doc, name, body, opts),
+
+    link_target(a_doc, name),
+    link_target(a_doc, name, opts)
+  ], to: Navigation
 
   @doc """
   Fetches value of specified property or links whose `rel` matches
