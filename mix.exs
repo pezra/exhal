@@ -17,7 +17,7 @@ defmodule ExHal.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :poison, :uri_template, :httpoison]]
   end
 
   defp deps do
