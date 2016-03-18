@@ -48,6 +48,11 @@ defmodule ExHalTest do
         ExHal.fetch(doc, "profile")
     end
 
+    test "urls can be extracted from links" do
+      assert {:ok, "http://example.com"} =
+        ExHal.link_target(doc, "profile")
+    end
+
     test "missing links cannot be fetched" do
       assert :error = ExHal.fetch(doc, "author")
     end
