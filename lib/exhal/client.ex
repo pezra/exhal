@@ -1,5 +1,6 @@
 defmodule ExHal.Client do
 
+  require Logger
   alias ExHal.Document
   alias ExHal.NonHalResponse
 
@@ -11,25 +12,39 @@ defmodule ExHal.Client do
     %__MODULE__{client | headers: updated_headers}
   end
 
+  defmacrop log_req(method, url, do: block) do
+    quote do
+      {time, result} = :timer.tc(fn -> unquote(block) end)
+      Logger.debug "#{unquote(method)} <#{unquote(url)}> completed in #{time}ms"
+      result
+    end
+  end
+
   def get(client, url, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
-    HTTPoison.get(url, headers, poison_opts)
-    |> extract_return(client)
+    log_req("GET", url) do
+      HTTPoison.get(url, headers, poison_opts)
+      |> extract_return(client)
+    end
   end
 
   def post(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
-    HTTPoison.post(url, body, headers, poison_opts)
-    |> extract_return(client)
+    log_req("POST", url) do
+      HTTPoison.post(url, body, headers, poison_opts)
+      |> extract_return(client)
+    end
   end
 
   def put(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
-    HTTPoison.put(url, body, headers, poison_opts)
-    |> extract_return(client)
+    log_req("PUT", url) do
+      HTTPoison.put(url, body, headers, poison_opts)
+      |> extract_return(client)
+    end
   end
 
 
