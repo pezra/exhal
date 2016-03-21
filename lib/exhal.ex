@@ -118,6 +118,7 @@ defmodule ExHal do
 
     follow_links(a_doc, name),
     follow_links(a_doc, name, opts),
+    follow_links(a_doc, name, missing_link_handler, opts),
 
     post(a_doc, name, body),
     post(a_doc, name, body, opts),
@@ -183,4 +184,3 @@ defmodule ExHal do
     ExHal.Collection.to_stream(a_doc)
   end
 end
-

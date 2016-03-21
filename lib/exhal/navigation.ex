@@ -2,12 +2,11 @@ defmodule ExHal.Navigation do
   alias ExHal.Link
   alias ExHal.Error
   alias ExHal.Client
-  import ExHal
 
   @doc """
   Follows a link in a HAL document.
 
-  Returns `{:ok,    %ExHal.Document{...}}` if response is successful; 
+  Returns `{:ok,    %ExHal.Document{...}}` if response is successful;
   `{:error, %ExHal.Error{...}}` if not
   """
   def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, strict: false, headers: []}) do
@@ -27,15 +26,23 @@ defmodule ExHal.Navigation do
 
   Returns `[{:ok, %ExHal.Document{...}}, {:error, %ExHal.Error{...}, ...]`
   """
-  def follow_links(a_doc, name, opts \\ %{tmpl_vars: %{}, headers: []}) do
+  def follow_links(a_doc, name, missing_link_handler, opts) do
     opts = Map.new(opts)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
-    case get_links_lazy(a_doc, name, fn -> :missing end) do
-      :missing -> [{:error, %Error{reason: "no such link: #{name}"}}]
+    case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
+      :missing -> missing_link_handler.(name)
       links    -> Enum.map(links, &_follow_link(a_doc.client, &1, tmpl_vars, opts))
     end
 
+  end
+
+  def follow_links(a_doc, name, opts) do
+    follow_links(a_doc, name, fn _name -> [] end, opts)
+  end
+
+  def follow_links(a_doc, name) do
+    follow_links(a_doc, name, %{})
   end
 
   @doc """
@@ -96,7 +103,7 @@ defmodule ExHal.Navigation do
   # privates
 
   defp figure_link(a_doc, name, pick_volunteer?) do
-    case get_links_lazy(a_doc, name, fn -> :missing end) do
+    case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> {:error, %Error{reason: "no such link: #{name}"}}
 
       (ls = [_|[_|_]]) -> if pick_volunteer? do
