@@ -14,7 +14,7 @@ defmodule ExHal.Collection do
       fn follow_result ->
         case follow_result do
           {:error, _} -> {:halt, follow_result}
-          {:ok, page}  -> {ExHal.follow_links(page, "item"),
+          {:ok, page}  -> {ExHal.follow_links(page, "item", fn _ -> [] end),
                            ExHal.follow_link(page, "next", pick_volunteer: true)}
         end
       end,

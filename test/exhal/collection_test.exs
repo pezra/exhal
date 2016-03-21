@@ -64,6 +64,10 @@ defmodule ExHal.CollectionTest do
     assert ExHal.to_stream(ctx[:single_page_collection_doc]) |> is_a_stream
   end
 
+  test "ExHal.to_stream(truly_empty_collection_doc) works", %{truly_empty_collection_doc: doc} do
+    assert ExHal.to_stream(doc) |> is_a_stream
+  end
+
 
   # background
 
@@ -72,6 +76,7 @@ defmodule ExHal.CollectionTest do
            single_page_collection_doc:   single_page_collection_doc,
            multi_page_collection_doc:    multi_page_collection_doc,
            empty_collection_doc:         empty_collection_doc,
+           truly_empty_collection_doc:   truly_empty_collection_doc,
            last_page_collection_url:     "http://example.com/?p=2",
            last_page_collection_hal_str: last_page_collection_hal_str]}
   end
@@ -97,6 +102,10 @@ defmodule ExHal.CollectionTest do
                                    ]
                                  }
                               })
+  end
+
+  defp truly_empty_collection_doc do
+    Document.from_parsed_hal(%Client{}, %{"_embedded" => %{}})
   end
 
   defp multi_page_collection_doc do

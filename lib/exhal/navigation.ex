@@ -26,7 +26,11 @@ defmodule ExHal.Navigation do
 
   Returns `[{:ok, %ExHal.Document{...}}, {:error, %ExHal.Error{...}, ...]`
   """
-  def follow_links(a_doc, name, missing_link_handler, opts) do
+  def follow_links(a_doc, name, opts) when is_map(opts) or is_list(opts) do
+    follow_links(a_doc, name, fn _name -> [{:error, %Error{reason: "no such link: #{name}"}}] end, opts)
+  end
+
+  def follow_links(a_doc, name, missing_link_handler, opts \\ %{}) do
     opts = Map.new(opts)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
@@ -35,10 +39,6 @@ defmodule ExHal.Navigation do
       links    -> Enum.map(links, &_follow_link(a_doc.client, &1, tmpl_vars, opts))
     end
 
-  end
-
-  def follow_links(a_doc, name, opts) do
-    follow_links(a_doc, name, fn _name -> [] end, opts)
   end
 
   def follow_links(a_doc, name) do
