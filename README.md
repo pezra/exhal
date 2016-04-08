@@ -151,6 +151,42 @@ or
 
     ExHal.Document.to_json_hash(ex_hal_doc) |> Poison.encode!
 
+### Interpretation
+
+ExHal also supports interpreting HAL documents. The following is a HAL document interpreter
+
+```elixir
+defmodule PersonInterpreter do
+  use ExHal.Interpreter
+
+  defextract :name
+  defextract :address, from: "mailingAddress"
+  defextractlink :department_url, rel: "app:department"
+end
+```
+
+This builds a module that can interpret documents like the following one into Maps of the data in the document.
+
+```json
+{
+  "name": "Jane Doe",
+  "mailingAddress": "123 Main St",
+  "_links": {
+    "app:department": { "href": "http://example.com/dept/42" }
+  }
+}
+```
+
+For example:
+
+```elixir
+iex> PersonInterpreter.to_params(doc)
+%{name: "Jane Doe",
+  address: "123 Main St",
+  department_url: "http://example.com/dept/42"}
+```
+
+This can be used to, for example, build an Ecto changeset via a `changeset/2` function.
 
 Installation
 ----

@@ -1,4 +1,41 @@
 defmodule ExHal.Interpreter do
+  @moduledoc """
+    Helps to build interpters of HAL documents.
+
+    Given a document like
+
+    ```json
+    {
+      "name": "Jane Doe",
+      "mailingAddress": "123 Main St",
+      "_links": {
+        "app:department": { "href": "http://example.com/dept/42" }
+      }
+    }
+    ```
+
+    We can define an interpreter for it.
+
+    ```elixir
+    defmodule PersonInterpreter do
+      use ExHal.Interpreter
+
+      defextract :name
+      defextract :address, from: "mailingAddress"
+      defextractlink :department_url, rel: "app:department"
+    end
+    ```
+
+    We can use this interpreter to to extract the pertinent parts of the document into a map.
+
+    ```elixir
+    iex> PersonInterpreter.to_params(doc)
+    %{name: "Jane Doe",
+      address: "123 Main St",
+      department_url: "http://example.com/dept/42"}
+    ```
+    """
+
   defmacro __using__(_opts) do
     quote do
       import unquote(__MODULE__)
@@ -15,6 +52,13 @@ defmodule ExHal.Interpreter do
     end
   end
 
+  @doc """
+  Define a property extractor.
+
+   * name - the name of the parameter to extract
+   * options - Keywords of optional arguments
+     - :from - the name of the property in the JSON document. Default is `to_string(name)`.
+  """
   defmacro defextract(name, options \\ []) do
     extractor_name = :"extract_#{name}"
     property_name = Keyword.get_lazy(options, :from, fn -> to_string(name) end)
@@ -30,6 +74,13 @@ defmodule ExHal.Interpreter do
     end
   end
 
+  @doc """
+  Define a link extractor.
+
+   * name - the name of the parameter to extract
+   * options - Keywords of optional arguments
+     - :rel - the rel or the link in the JSON document. Required.
+  """
   defmacro defextractlink(name, options \\ []) do
     extractor_name = :"extract_#{name}"
     rel_name = Keyword.fetch!(options, :rel)
