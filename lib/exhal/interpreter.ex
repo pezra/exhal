@@ -15,16 +15,40 @@ defmodule ExHal.Interpreter do
     end
   end
 
-  defmacro defextract(name) do
+  defmacro defextract(name, options \\ []) do
     extractor_name = :"extract_#{name}"
+    property_name = Keyword.get_lazy(options, :from, fn -> to_string(name) end)
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        value = ExHal.get_lazy(doc, unquote(to_string(name)), fn -> nil end)
-        Map.put(params, unquote(name), value)
+        extract(params, doc, unquote(name), fn doc ->
+          ExHal.get_lazy(doc, unquote(property_name), fn -> :missing end)
+        end)
       end
 
       @extractors unquote(extractor_name)
+    end
+  end
+
+  defmacro defextractlink(name, options \\ []) do
+    extractor_name = :"extract_#{name}"
+    rel_name = Keyword.fetch!(options, :rel)
+
+    quote do
+      def unquote(extractor_name)(doc, params) do
+        extract(params, doc, unquote(name), fn doc ->
+          ExHal.link_target_lazy(doc, unquote(rel_name), fn -> :missing end)
+        end)
+      end
+
+      @extractors unquote(extractor_name)
+    end
+  end
+
+  def extract(params, doc, param_name, value_extractor) do
+    case value_extractor.(doc) do
+      :missing -> params
+      value -> Map.put(params, param_name, value)
     end
   end
 end
