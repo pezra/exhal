@@ -100,6 +100,13 @@ defmodule ExHal.Navigation do
     end
   end
 
+  def link_target_lazy(a_doc, name, opts \\ %{}, fun) do
+    case link_target(a_doc, name, opts) do
+      {:ok, target} -> target
+      {:error, _} -> fun.()
+    end
+  end
+
   # privates
 
   defp figure_link(a_doc, name, pick_volunteer?) do
