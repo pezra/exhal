@@ -52,7 +52,7 @@ defmodule ExHal.Client do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])
 
     headers     = merge_headers(client.headers, local_headers)
-    poison_opts = Keyword.merge(client.opts, Keyword.new(local_opts))
+    poison_opts = merge_poison_opts(client.opts, local_opts)
 
     {headers, poison_opts}
   end
@@ -60,6 +60,13 @@ defmodule ExHal.Client do
   defp merge_headers(old_headers, new_headers) do
     old_headers
     |> Keyword.merge(new_headers, fn (_k,v1,v2) -> List.wrap(v1) ++ List.wrap(v2) end)
+  end
+
+  @default_poison_opts [follow_redirect: true]
+  defp merge_poison_opts(old_opts, new_opts) do
+    @default_poison_opts
+    |> Keyword.merge(old_opts)
+    |> Keyword.merge(Keyword.new(new_opts))
   end
 
   defp extract_return(http_resp, client) do
