@@ -145,27 +145,27 @@ Collections and Document can render themselves to a json-like
 structure that can then be serialized using your favorite json encoder
 (e.g. Poison):
 
-    ExHal.Collection.to_json_hash([ex_hal_doc]) |> Poison.encode!
+    ExHal.Collection.render!
 
 or
 
-    ExHal.Document.to_json_hash(ex_hal_doc) |> Poison.encode!
+    ExHal.Document.render!
 
-### Interpretation
+### Transcoding
 
 ExHal also supports interpreting HAL documents. The following is a HAL document interpreter
 
 ```elixir
-defmodule PersonInterpreter do
-  use ExHal.Interpreter
+defmodule PersonTranscoder do
+  use ExHal.Transcoder
 
-  defextract :name
-  defextract :address, from: "mailingAddress"
-  defextractlink :department_url, rel: "app:department"
+  defproperty :name
+  defproperty "mailingAddress", param: :address
+  deflink "app:department", param: :department_url
 end
 ```
 
-This builds a module that can interpret documents like the following one into Maps of the data in the document.
+This builds a module that can encode and decode documents like the following:
 
 ```json
 {
@@ -180,13 +180,24 @@ This builds a module that can interpret documents like the following one into Ma
 For example:
 
 ```elixir
-iex> PersonInterpreter.to_params(doc)
+iex> PersonTranscoder.decode!(doc)
 %{name: "Jane Doe",
   address: "123 Main St",
   department_url: "http://example.com/dept/42"}
+iex> PersonTranscoder.encode!(%{name: "Jane Doe",
+                                address: "123 Main St",
+                                department_url: "http://example.com/dept/42"})
+~s(
+{
+  "name": "Jane Doe",
+  "mailingAddress": "123 Main St",
+  "_links": {
+    "app:department": { "href": "http://example.com/dept/42" }
+  }
+} )
 ```
 
-This can be used to, for example, build an Ecto changeset via a `changeset/2` function.
+This can be used to, for example, build Ecto changesets via a `changeset/2` functions and to render HAL responses to HTTP requests.
 
 Installation
 ----

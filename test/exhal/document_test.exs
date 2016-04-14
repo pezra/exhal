@@ -17,6 +17,26 @@ defmodule ExHal.DocumentTest do
     assert Document.parse!(context[:client], "{}") |> is_hal_doc?
   end
 
+  defmodule UrlFuncTest do
+    use ExUnit.Case, async: true
+
+    test "URL can be determined with self link" do
+      assert {:ok, "http://example.com"} = Document.url(doc_with_self_link)
+    end
+
+    test "URL cannot be determined without self link" do
+      assert :error = Document.url(doc_sans_self_link)
+    end
+
+
+    defp doc_with_self_link do
+      Document.parse! ExHal.client, ~s({"_links": { "self": {"href": "http://example.com"}}})
+    end
+    defp doc_sans_self_link do
+      Document.parse! ExHal.client, ~s({"_links": { }})
+    end
+  end
+
   test ".to_json_hash", context do
     parsed_hal = %{
       "name" => "My Name",
@@ -29,6 +49,128 @@ defmodule ExHal.DocumentTest do
 
     doc = Document.from_parsed_hal(context[:client], parsed_hal)
     assert ^parsed_hal = Document.to_json_hash(doc)
+  end
+
+  defmodule DocWithProperties do
+    use ExUnit.Case, async: true
+
+    defp doc, do: Document.parse! ExHal.client, ~s({"one": 1})
+
+    test "properties can be retrieved" do
+      assert {:ok, 1} = Document.fetch(doc, "one")
+    end
+
+    test "missing properties cannot be retrieved" do
+      assert :error = Document.fetch(doc, "two")
+    end
+
+    test "can be rendered" do
+      assert is_binary(Document.render!(doc))
+      assert String.contains?(Document.render!(doc), ~s("one":))
+      assert doc == Document.parse!(Document.render!(doc))
+    end
+
+  end
+
+
+  defmodule DocWithWithLinks do
+    use ExUnit.Case, async: true
+
+    @doc_str ~s({"_links": { "profile": {"href": "http://example.com"}}})
+
+    defp doc, do: Document.parse! ExHal.client, @doc_str
+
+    test "links can be fetched" do
+      assert {:ok, [%ExHal.Link{href: "http://example.com", templated: false}] } =
+        Document.fetch(doc, "profile")
+    end
+
+    test "missing links cannot be fetched" do
+      assert :error = Document.fetch(doc, "author")
+    end
+
+    test "can be rendered" do
+      assert is_binary(Document.render!(doc))
+      assert String.contains?(Document.render!(doc), ~s("_links":))
+      assert doc == Document.parse!(Document.render!(doc))
+    end
+  end
+
+  defmodule DocWithWithEmbeddedLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: Document.parse! ExHal.client, ~s({"_embedded": {
+                                     "profile": {
+                                       "name": "Peter",
+                                       "_links": {
+                                         "self": { "href": "http://example.com"}
+                                       }}}})
+
+    test "embeddeds can be fetched" do
+      assert {:ok, [%ExHal.Link{target: %ExHal.Document{},
+                                href: "http://example.com",
+                                templated: false}] } =
+        Document.fetch(doc, "profile")
+    end
+
+    test "missing links cannot be fetched" do
+      assert :error = Document.fetch(doc, "author")
+    end
+
+    test "can be rendered" do
+      assert is_binary(Document.render!(doc))
+      assert String.contains?(Document.render!(doc), ~s("_embedded":))
+      assert doc == Document.parse!(Document.render!(doc))
+    end
+  end
+
+  defmodule DocWithWithDuplicateLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: Document.parse! ExHal.client, ~s({"_links": {
+                                     "item": [
+                                       {"href": "http://example.com/1"},
+                                       {"href": "http://example.com/2"}
+                                     ]
+                                 }})
+
+    test "links can be fetched" do
+      assert {:ok, [_, _] } = Document.fetch(doc, "item")
+    end
+  end
+
+  defmodule DocWithCuriedLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: Document.parse! ExHal.client, ~s({"_links": {
+                                     "app:foo": { "href": "http://example.com" },
+                                     "curies": [ { "name": "app",
+                                                   "href": "http://example.com/rels/{rel}",
+                                                   "templated": true } ]
+                                          } })
+
+    test "links can be fetched by decuried rels" do
+      assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
+        Document.fetch(doc, "http://example.com/rels/foo")
+    end
+
+    test "links can be fetched by curied rels" do
+      assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
+        Document.fetch(doc, "app:foo")
+    end
+
+  end
+
+  defmodule DocWithTemplatedLinks do
+    use ExUnit.Case, async: true
+    defp doc, do: Document.parse! ExHal.client, ~s(
+                                    {"_links": {
+                                     "search": { "href": "http://example.com/{?q}",
+                                                 "templated": true }
+                                          } } )
+
+    test "templated links can be fetched" do
+      assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true}] } =
+        Document.fetch(doc, "search")
+    end
+
   end
 
   # Background

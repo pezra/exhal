@@ -103,7 +103,7 @@ defmodule ExHal do
     """
 
 
-  alias ExHal.{Client,Navigation}
+  alias ExHal.{Client,Navigation,Document}
 
   @doc """
     Returns a default client
@@ -130,54 +130,15 @@ defmodule ExHal do
     link_target_lazy(a_doc, name, opts, fun)
   ], to: Navigation
 
-  @doc """
-  Fetches value of specified property or links whose `rel` matches
 
-  Returns `{:ok, <property value>}` if `name` identifies a property;
-          `{:ok, [%Link{}, ...]}`   if `name` identifies a link;
-          `:error`                  othewise
-  """
-  def fetch(a_document, name) do
-    case get_lazy(a_document, name, fn -> :error end) do
-      :error -> :error
-      result -> {:ok, result}
-    end
-  end
-
-  @doc """
-  Returns link or property of the specified name, or the result of `default_fun`
-  if neither are found.
-  """
-  def get_lazy(a_doc, name, default_fun) do
-    get_property_lazy(a_doc, name,
-      fn -> get_links_lazy(a_doc, name, default_fun) end
-    )
-  end
-
-  @doc """
-  Returns `<property value>` when property exists or result of `default_fun`
-  otherwise
-  """
-  def get_property_lazy(a_doc, prop_name, default_fun) do
-    Map.get_lazy(a_doc.properties, prop_name, default_fun)
-  end
-
-  @doc """
-  Returns `[%Link{}...]` when link exists or result of `default_fun` otherwise.
-  """
-  def get_links_lazy(a_doc, link_name, default_fun) do
-    Map.get_lazy(a_doc.links, link_name, default_fun)
-  end
-
-  @doc """
-  Returns `{:ok, <url of specified document>}` or `:error`.
-  """
-  def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
-    case ExHal.Locatable.url(a_doc) do
-      :error -> default_fn.(a_doc)
-      url    -> url
-    end
-  end
+  defdelegate [
+    fetch(a_document, name),
+    get_lazy(a_doc, name, default_fun),
+    get_property_lazy(a_doc, prop_name, default_fun),
+    get_links_lazy(a_doc, link_name, default_fun),
+    url(a_doc),
+    url(a_doc, default_fn)
+  ], to: Document
 
   @doc """
     Returns a stream that yields the items in the rfc 6573 collection

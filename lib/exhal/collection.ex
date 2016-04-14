@@ -23,6 +23,16 @@ defmodule ExHal.Collection do
   end
 
   @doc """
+    Returns a string representation of this HAL collection.
+  """
+  def render!(enum) do
+    to_json_hash(enum)
+    |> Poison.encode!
+  end
+
+  @doc """
+    ** Deprecated **
+    see `render/1`
   """
   def to_json_hash(enum) do
     %{ "_embedded" => %{"item" => Enum.map(enum, &(Document.to_json_hash(&1)))} }

@@ -6,16 +6,31 @@ defmodule ExHal.CollectionTest do
 
   alias ExHal.Document
   alias ExHal.Collection
-  alias ExHal.Client
 
-  test ".to_json_hash", context do
+  test ".to_json_hash" do
     parsed_hal = %{
       "name" => "My Name",
       "_embedded" => %{ "test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
       "_links" => %{ "self" => %{"href" => "http://example.com/my-name"}}}
 
-    doc = Document.from_parsed_hal(context[:client], parsed_hal)
+    doc = Document.from_parsed_hal(parsed_hal)
     assert %{"_embedded" => %{"item" => [^parsed_hal]}} = Collection.to_json_hash([doc])
+  end
+
+  test "render!/1" do
+    parsed_hal = %{
+      "name" => "My Name",
+      "_embedded" => %{ "test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
+      "_links" => %{ "self" => %{"href" => "http://example.com/my-name"}}}
+
+    doc = Document.from_parsed_hal(parsed_hal)
+    {:ok, rendered_doc} =
+      Collection.render!([doc])
+      |> Document.parse!
+      |> Collection.to_stream
+      |> Enum.at(0)
+
+    assert rendered_doc == doc
   end
 
   test ".to_stream(non_collection_doc) succeeds", ctx do
@@ -82,11 +97,11 @@ defmodule ExHal.CollectionTest do
   end
 
   defp non_collection_doc do
-    Document.from_parsed_hal(%Client{}, %{})
+    Document.from_parsed_hal(%{})
   end
 
   defp single_page_collection_doc do
-    Document.from_parsed_hal(%Client{}, %{"_embedded" =>
+    Document.from_parsed_hal(%{"_embedded" =>
                                 %{"item" =>
                                    [%{"name" => "first"},
                                     %{"name" => "second"}
@@ -96,7 +111,7 @@ defmodule ExHal.CollectionTest do
   end
 
   defp empty_collection_doc do
-    Document.from_parsed_hal(%Client{}, %{"_embedded" =>
+    Document.from_parsed_hal(%{"_embedded" =>
                                 %{"item" =>
                                    [
                                    ]
@@ -105,11 +120,11 @@ defmodule ExHal.CollectionTest do
   end
 
   defp truly_empty_collection_doc do
-    Document.from_parsed_hal(%Client{}, %{"_embedded" => %{}})
+    Document.from_parsed_hal(%{"_embedded" => %{}})
   end
 
   defp multi_page_collection_doc do
-    Document.from_parsed_hal(%Client{}, %{"_embedded" =>
+    Document.from_parsed_hal(%{"_embedded" =>
                                 %{"item" =>
                                    [%{"name" => "first"},
                                     %{"name" => "second"}
