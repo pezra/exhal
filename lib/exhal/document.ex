@@ -8,32 +8,56 @@ defmodule ExHal.Document do
 
   defstruct properties: %{}, links: %{}, client:
 
+
   @doc """
     Returns a new `%ExHal.Document` representing the HAL document provided.
     """
-  def parse(client, hal_str) do
+  def parse(hal_str, client \\ ExHal.client)
+
+  def parse(hal_str, client) when is_binary(hal_str) do
     case Poison.Parser.parse(hal_str) do
       {:ok, parsed} -> {:ok, from_parsed_hal(client, parsed)}
-      r -> r 
+      r -> r
     end
+  end
+
+  def parse(client, hal_str) do
+    parse(hal_str, client)
   end
 
   @doc """
     Returns a new `%ExHal.Document` representing the HAL document provided.
     """
-  def parse!(client, hal_str) do
+  def parse!(hal_str, client \\ ExHal.client)
+
+  def parse!(hal_str, client) when is_binary(hal_str) do
     {:ok, doc} = parse(client, hal_str)
     doc
   end
+  def parse!(client, hal_str) do
+    parse!(hal_str, client)
+  end
+
+  @doc """
+    Returns a string representation of this HAL document.
+  """
+  def render!(doc) do
+    doc.properties
+    |> Map.merge(links_sections_to_json_map(doc))
+    |> Poison.encode!
+  end
+
 
   @doc """
     Returns new ExHal.Document
     """
-  def from_parsed_hal(client, parsed_hal) do
+  def from_parsed_hal(parsed_hal, client \\ ExHal.client)
+  def from_parsed_hal(parsed_hal, %ExHal.Client{} = client) do
     %__MODULE__{client: client,
                 properties: properties_in(parsed_hal),
                 links: links_in(client, parsed_hal)}
   end
+  def from_parsed_hal(client, parsed_hal), do: from_parsed_hal(parsed_hal, client)
 
   @doc """
     Returns true iff the document contains at least one link with the specified rel.
@@ -43,14 +67,91 @@ defmodule ExHal.Document do
   end
 
   @doc """
+    **Deprecated**
+
     Returns a map that matches the shape of the intended JSON output.
     """
   def to_json_hash(doc) do
     doc.properties
-    |> Map.merge(links_sections_to_json_hash(doc))
+    |> Map.merge(links_sections_to_json_map(doc))
   end
 
-  defp links_sections_to_json_hash(doc) do
+  @doc """
+  Returns `{:ok, <url of specified document>}` or `:error`.
+  """
+  def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
+    case ExHal.Locatable.url(a_doc) do
+      :error -> default_fn.(a_doc)
+      url    -> url
+    end
+  end
+
+  # Access
+
+  @doc """
+  Fetches value of specified property or links whose `rel` matches
+
+  Returns `{:ok, <property value>}` if `name` identifies a property;
+          `{:ok, [%Link{}, ...]}`   if `name` identifies a link;
+          `:error`                  othewise
+  """
+  def fetch(a_document, name) do
+    case get_lazy(a_document, name, fn -> :error end) do
+      :error -> :error
+      result -> {:ok, result}
+    end
+  end
+
+  @doc """
+  Returns link or property of the specified name, or the result of `default_fun`
+  if neither are found.
+  """
+  def get_lazy(a_doc, name, default_fun) do
+    get_property_lazy(a_doc, name,
+      fn -> get_links_lazy(a_doc, name, default_fun) end
+    )
+  end
+
+  @doc """
+  Returns `<property value>` when property exists or result of `default_fun`
+  otherwise
+  """
+  def get_property_lazy(a_doc, prop_name, default_fun) do
+    Map.get_lazy(a_doc.properties, prop_name, default_fun)
+  end
+
+  @doc """
+  Returns `[%Link{}...]` when link exists or result of `default_fun` otherwise.
+  """
+  def get_links_lazy(a_doc, link_name, default_fun) do
+    Map.get_lazy(a_doc.links, link_name, default_fun)
+  end
+
+  # Modification
+
+  @doc """
+    Add or update a property to a Document.
+
+    Returns new ExHal.Document with the specified property set to the specified value.
+  """
+  def put_property(doc, name, val) do
+    %{doc | properties: Map.put(doc.properties, name, val)}
+  end
+
+  @doc """
+    Add a link to a Document.
+
+    Returns new ExHal.Document with the specified link.
+  """
+  def put_link(doc, rel, target) do
+    new_rel_links = Map.get(doc.links, rel, []) ++
+      [%ExHal.Link{rel: rel, href: target, templated: false, name: nil}]
+
+    %{doc | links: Map.put(doc.links, rel, new_rel_links)}
+  end
+
+
+  defp links_sections_to_json_map(doc) do
     {embedded, references} = doc.links
     |> Map.to_list
     |> Enum.flat_map(fn ({_,v}) -> v end)
@@ -69,7 +170,7 @@ defmodule ExHal.Document do
     |> Map.new
   end
 
-  
+
   defp properties_in(parsed_json) do
     Map.drop(parsed_json, ["_links", "_embedded"])
   end
