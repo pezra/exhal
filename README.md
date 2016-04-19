@@ -155,45 +155,71 @@ or
 
 ExHal also supports interpreting HAL documents. The following is a HAL document interpreter
 
-```elixir
-defmodule PersonTranscoder do
-  use ExHal.Transcoder
-
-  defproperty :name
-  defproperty "mailingAddress", param: :address
-  deflink "app:department", param: :department_url
-end
-```
-
-This builds a module that can encode and decode documents like the following:
+Given a document like
 
 ```json
 {
   "name": "Jane Doe",
   "mailingAddress": "123 Main St",
   "_links": {
-    "app:department": { "href": "http://example.com/dept/42" }
+    "app:department": { "href": "http://example.com/dept/42" },
+    "app:manager":    { "href": "http://example.com/people/84" }
   }
 }
 ```
 
-For example:
+We can define an transcoder for it.
+
+```elixir
+defmodule PersonTranscoder do
+  use ExHal.Transcoder
+
+  defproperty "name"
+  defproperty "mailingAddress", param: :address
+  deflink     "app:department", param: :department_url
+  deflink     "app:manager",    param: :manager_id, value_converter: PersonUrlConverter
+end
+```
+
+`PersonUrlConverter` is a module that has adopted the `ExHal.ValueConverter` behavior.
+
+```elixir
+defmodule PersonUrlConverter do
+  @behaviour ExHal.ValueConveter
+
+  def from_hal(person_url) do
+    to_string(person_url)
+    |> String.split("/")
+    |> List.last
+  end
+
+  def to_hal(person_id) do
+    "http://example.com/people/#{person_id}"
+  end
+end
+```
+
+We can use this transcoder to to extract the pertinent parts of the document into a map.
 
 ```elixir
 iex> PersonTranscoder.decode!(doc)
 %{name: "Jane Doe",
   address: "123 Main St",
-  department_url: "http://example.com/dept/42"}
+  department_url: "http://example.com/dept/42",
+  manager_id: 84}
+```
 iex> PersonTranscoder.encode!(%{name: "Jane Doe",
-                                address: "123 Main St",
-                                department_url: "http://example.com/dept/42"})
+  address: "123 Main St",
+  department_url: "http://example.com/dept/42",
+  manager_id: 84})
 ~s(
 {
   "name": "Jane Doe",
   "mailingAddress": "123 Main St",
   "_links": {
-    "app:department": { "href": "http://example.com/dept/42" }
-  }
+    "app:department": { "href": "http://example.com/dept/42" },
+    "app:manager":    { "href": "http://example.com/people/84" }
+   }
 } )
 ```
 
