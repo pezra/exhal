@@ -185,7 +185,7 @@ end
 
 ```elixir
 defmodule PersonUrlConverter do
-  @behaviour ExHal.ValueConveter
+  @behaviour ExHal.ValueConverter
 
   def from_hal(person_url) do
     to_string(person_url)
