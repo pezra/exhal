@@ -185,7 +185,7 @@ end
 
 ```elixir
 defmodule PersonUrlConverter do
-  @behaviour ExHal.ValueConveter
+  @behaviour ExHal.ValueConverter
 
   def from_hal(person_url) do
     to_string(person_url)
@@ -207,7 +207,6 @@ iex> PersonTranscoder.decode!(doc)
   address: "123 Main St",
   department_url: "http://example.com/dept/42",
   manager_id: 84}
-```
 iex> PersonTranscoder.encode!(%{name: "Jane Doe",
   address: "123 Main St",
   department_url: "http://example.com/dept/42",
