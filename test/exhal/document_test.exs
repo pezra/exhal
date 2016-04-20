@@ -6,15 +6,15 @@ defmodule ExHal.DocumentTest do
   alias ExHal.Document
 
   setup do
-    {:ok, [client: ExHal.client]}
+    {:ok, %{client: ExHal.client}}
   end
 
-  test "ExHal parses valid, empty HAL documents", context do
-    assert Document.parse!(context[:client], "{}") |> is_hal_doc?
+  test "ExHal parses valid, empty HAL documents", %{client: client} do
+    assert Document.parse!(client, "{}") |> is_hal_doc?
   end
 
-  test "ExHal parses valid, non-empty HAL documents", context do
-    assert Document.parse!(context[:client], "{}") |> is_hal_doc?
+  test "ExHal parses valid, non-empty HAL documents", %{client: client} do
+    assert Document.parse!(client, "{}") |> is_hal_doc?
   end
 
   defmodule UrlFuncTest do
@@ -37,7 +37,7 @@ defmodule ExHal.DocumentTest do
     end
   end
 
-  test ".to_json_hash", context do
+  test ".to_json_hash", %{client: client} do
     parsed_hal = %{
       "name" => "My Name",
       "_embedded" => %{ "test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
@@ -47,7 +47,7 @@ defmodule ExHal.DocumentTest do
                        %{"href" => "http://example.com/my-foo"},
                      ]}}
 
-    doc = Document.from_parsed_hal(context[:client], parsed_hal)
+    doc = Document.from_parsed_hal(client, parsed_hal)
     assert ^parsed_hal = Document.to_json_hash(doc)
   end
 
@@ -56,12 +56,36 @@ defmodule ExHal.DocumentTest do
 
     defp doc, do: Document.parse! ExHal.client, ~s({"one": 1})
 
-    test "properties can be retrieved" do
-      assert {:ok, 1} = Document.fetch(doc, "one")
+    test "properties can be fetched" do
+      assert {:ok, 1} == Document.fetch(doc, "one")
     end
 
-    test "missing properties cannot be retrieved" do
-      assert :error = Document.fetch(doc, "two")
+    test "get(doc, real_prop)" do
+      assert 1 == Document.get(doc, "one")
+    end
+
+    test "get_property(doc, real_prop)" do
+      assert 1 == Document.get_property(doc, "one")
+    end
+
+    test "missing properties cannot be fetched" do
+      assert :error == Document.fetch(doc, "two")
+    end
+
+    test "get(doc, missing_prop)" do
+      assert nil == Document.get(doc, "two")
+    end
+
+    test "get(doc, missing_prop, default)" do
+      assert :hello == Document.get(doc, "two", :hello)
+    end
+
+    test "get_property(doc, missing_prop)" do
+      assert nil == Document.get_property(doc, "two")
+    end
+
+    test "get_property(doc, missing_prop, default)" do
+      assert :hello == Document.get_property(doc, "two", :hello)
     end
 
     test "can be rendered" do
@@ -87,6 +111,18 @@ defmodule ExHal.DocumentTest do
 
     test "missing links cannot be fetched" do
       assert :error = Document.fetch(doc, "author")
+    end
+
+    test "get_links(doc, present_rel)" do
+      assert [%ExHal.Link{href: "http://example.com", templated: false}] = Document.get_links(doc, "profile")
+    end
+
+    test "get_links(doc, absent_rel)" do
+      assert [] = Document.get_links(doc, "absent_rel")
+    end
+
+    test "get_links(doc, absent_rel, :missing)" do
+      assert :missing = Document.get_links(doc, "absent_rel", :missing)
     end
 
     test "can be rendered" do
