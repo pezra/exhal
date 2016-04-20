@@ -103,6 +103,14 @@ defmodule ExHal.Document do
   end
 
   @doc """
+  Returns the link or property of the specified name, or `default` if
+  neither or found.
+  """
+  def get(a_doc, name, default \\ nil) do
+    get_lazy(a_doc, name, fn -> default end)
+  end
+
+  @doc """
   Returns link or property of the specified name, or the result of `default_fun`
   if neither are found.
   """
@@ -110,6 +118,14 @@ defmodule ExHal.Document do
     get_property_lazy(a_doc, name,
       fn -> get_links_lazy(a_doc, name, default_fun) end
     )
+  end
+
+  @doc """
+  Returns property value when property exists or `default`
+  otherwise
+  """
+  def get_property(a_doc, prop_name, default \\ nil) do
+    Map.get_lazy(a_doc.properties, prop_name, fn -> default end)
   end
 
   @doc """
@@ -121,11 +137,19 @@ defmodule ExHal.Document do
   end
 
   @doc """
+  Returns `[%Link{}...]` when link exists or result of `default` otherwise.
+  """
+  def get_links(a_doc, link_name, default \\ []) do
+    Map.get(a_doc.links, link_name, default)
+  end
+
+  @doc """
   Returns `[%Link{}...]` when link exists or result of `default_fun` otherwise.
   """
   def get_links_lazy(a_doc, link_name, default_fun) do
     Map.get_lazy(a_doc.links, link_name, default_fun)
   end
+
 
   # Modification
 
