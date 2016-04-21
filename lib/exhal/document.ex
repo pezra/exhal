@@ -69,9 +69,14 @@ defmodule ExHal.Document do
   @doc """
     **Deprecated**
 
+    See to_json_map/1
+    """
+  def to_json_hash(doc), do: to_json_map(doc)
+
+  @doc """
     Returns a map that matches the shape of the intended JSON output.
     """
-  def to_json_hash(doc) do
+  def to_json_map(doc) do
     doc.properties
     |> Map.merge(links_sections_to_json_map(doc))
   end
@@ -189,7 +194,7 @@ defmodule ExHal.Document do
     enum
     |> Enum.group_by(&(&1.rel))
     |> Map.to_list
-    |> Enum.map(fn ({rel, links}) -> {rel, Enum.map(links, &Link.to_json_hash(&1))} end)
+    |> Enum.map(fn ({rel, links}) -> {rel, Enum.map(links, &Link.to_json_map(&1))} end)
     |> Enum.map(fn ({rel, fragments}) -> {rel, unbox_single_fragments(fragments)} end)
     |> Map.new
   end
@@ -254,5 +259,13 @@ defimpl ExHal.Locatable, for: ExHal.Document do
       :error     -> :error
       [link | _] -> Link.target_url(link)
     end
+  end
+end
+
+defimpl Poison.Encoder, for: ExHal.Document do
+  alias ExHal.Document
+
+  def encode(doc, options) do
+    Poison.Encoder.Map.encode(Document.to_json_map(doc), options)
   end
 end

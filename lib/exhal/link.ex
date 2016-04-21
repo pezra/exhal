@@ -72,7 +72,16 @@ defmodule ExHal.Link do
     !!link.target
   end
 
-  def to_json_hash(link) do
+  @doc"""
+    **Deprecated**
+    See `to_json_map/1`
+    """
+  def to_json_hash(link), do: to_json_map(link)
+
+  @doc"""
+    Returns a map that matches the shape of the intended JSON output.
+    """
+  def to_json_map(link) do
     if embedded?(link) do
       Document.to_json_hash(link.target)
     else
