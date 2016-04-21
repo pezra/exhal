@@ -15,6 +15,11 @@ defmodule ExHal.NavigationTest do
 
       assert {:ok, "http://example.com/thing"} = ExHal.url(target)
     end
+
+    assert {:ok, (target = %Document{})} =
+      Navigation.follow_link(doc, "embedded")
+
+    assert {:ok, "http://example.com/e"} = ExHal.url(target)
   end
 
   test ".post", %{doc: doc} do
@@ -45,6 +50,7 @@ defmodule ExHal.NavigationTest do
 
   test ".link_target", %{doc: doc} do
     assert {:ok, "http://example.com/"} = Navigation.link_target(doc, "single")
+    assert {:ok, "http://example.com/e"} = Navigation.link_target(doc, "embedded")
 
     assert {:ok, "http://example.com/?q=hello"} = Navigation.link_target(doc, "tmpl", tmpl_vars: %{q: "hello"})
 
