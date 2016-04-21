@@ -106,7 +106,7 @@ Consider a resource `http://example.com/hal-collection` whose HAL representation
 { "_links": {
      "self"   : { "href": "http://example.com/hal-collection" },
       "item": [{ "href": "http://example.com/beginning" },
-               { "href": "http://example.com/middle" }]
+               { "href": "http://example.com/middle" }],
       "next": { "href": "http://example.com/hal-collection?p=2" }
   }
 }
@@ -226,6 +226,8 @@ This can be used to, for example, build Ecto changesets via a `changeset/2` func
 
 
 ### Assertions about HAL documents
+
+Several assertion and helper functions are available to support testing. These functions accept a `ExHal.Document` or a string.
 
 ```elixir
 iex> import ExUnit.Assertions
