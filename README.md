@@ -224,6 +224,45 @@ iex> PersonTranscoder.encode!(%{name: "Jane Doe",
 
 This can be used to, for example, build Ecto changesets via a `changeset/2` functions and to render HAL responses to HTTP requests.
 
+
+### Assertions about HAL documents
+
+```elixir
+iex> import ExUnit.Assertions
+nil
+iex> import ExHal.Assertions
+nil
+iex> assert_property ~s({"name": "foo"}), "name"
+true
+iex> assert_property ~s({"name": "foo"}), "address"
+** (ExUnit.AssertionError) address is absent
+iex> assert_property ~s({"name": "foo"}), "name", eq "foo"
+true
+iex> assert_property ~s({"name": "foo"}), "name", matches ~r/fo/
+true
+iex> assert_property ~s({"name": "foo"}), "name", eq "bar"
+** (ExUnit.AssertionError) expected property `name` to eq("bar")
+iex> assert_link_target ~s({"_links": { "profile": {"href": "http://example.com" }}}),
+...>   "profile"
+true
+iex> assert_link_target ~s({"_links": { "profile": {"href": "http://example.com" }}}),
+...>   "item"
+** (ExUnit.AssertionError) link `item` is absent
+iex> assert_link_target ~s({"_links": { "profile": {"href": "http://example.com" }}}),
+...>   "profile", eq "http://example.com"
+true
+iex> assert_link_target ~s({"_links": { "profile": {"href": "http://example.com" }}}),
+...>   "profile", matches ~r/example.com/
+true
+iex> assert_link_target ~s({"_links": { "profile": {"href": "http://example.com" }}}),
+...>   "profile", eq "http://bad.com"
+** (ExUnit.AssertionError) expected (at least one) `item` link to eq("http://bad.com") but found only http://example.com
+iex> assert collection("{}") |> Enum.empty?
+true
+iex> assert 1 == collection("{}") |> Enum.count
+** (ExUnit.AssertionError) Assertion with == failed
+```
+
 Installation
 ----
 

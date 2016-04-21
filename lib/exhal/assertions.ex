@@ -36,7 +36,7 @@ defmodule ExHal.Assertions do
     true
     iex> assert 1 == collection("{}") |> Enum.count
     ** (ExUnit.AssertionError) Assertion with == failed
-
+    ```
     """
 
   import ExUnit.Assertions
