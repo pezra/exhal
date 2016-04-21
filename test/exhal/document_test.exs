@@ -94,6 +94,12 @@ defmodule ExHal.DocumentTest do
       assert doc == Document.parse!(Document.render!(doc))
     end
 
+    test "Poison.Encoder.encode(doc)" do
+      assert is_binary(Poison.encode!(doc))
+      assert String.contains?(Poison.encode!(doc), ~s("one":))
+      assert doc == Document.parse!(Poison.encode!(doc))
+    end
+
   end
 
 

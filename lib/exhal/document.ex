@@ -261,3 +261,11 @@ defimpl ExHal.Locatable, for: ExHal.Document do
     end
   end
 end
+
+defimpl Poison.Encoder, for: ExHal.Document do
+  alias ExHal.Document
+
+  def encode(doc, options) do
+    Poison.Encoder.Map.encode(Document.to_json_map(doc), options)
+  end
+end
