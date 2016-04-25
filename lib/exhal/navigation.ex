@@ -92,11 +92,26 @@ defmodule ExHal.Navigation do
     strict?   = Map.get(opts, :strict, false)
 
     case figure_link(a_doc, name, !strict?) do
-      {:ok, link} -> case Link.target_url(link, tmpl_vars) do
-                       {:ok, url} -> {:ok, url}
-                       :error -> {:error, %Error{reason: "link has no href member"}}
-                     end
+      {:ok, link} -> find_link_target(link, tmpl_vars)
       (r = _) -> r
+    end
+  end
+
+  def link_targets(a_doc, name, opts \\ %{}) do
+    opts = Map.new(opts)
+    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
+    case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
+      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+      (links = [_|[_|_]]) ->
+        links
+        |> Enum.map(fn(link) -> {:ok, target} = find_link_target(link, tmpl_vars); target end)
+    end
+  end
+
+  def link_targets_lazy(a_doc, name, opts \\ %{}, fun) do
+    case link_targets(a_doc, name, opts) do
+      links -> links
+      {:error, _} -> fun.()
     end
   end
 
@@ -108,6 +123,13 @@ defmodule ExHal.Navigation do
   end
 
   # privates
+
+  defp find_link_target(link, tmpl_vars) do
+    case Link.target_url(link, tmpl_vars) do
+      :error -> {:error, %Error{reason: "link has no href member"}}
+      successful -> successful
+    end
+  end
 
   defp figure_link(a_doc, name, pick_volunteer?) do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do

@@ -126,8 +126,14 @@ defmodule ExHal do
     link_target(a_doc, name),
     link_target(a_doc, name, opts),
 
+    link_targets(a_doc, name),
+    link_targets(a_doc, name, opts),
+
     link_target_lazy(a_doc, name, fun),
-    link_target_lazy(a_doc, name, opts, fun)
+    link_target_lazy(a_doc, name, opts, fun),
+
+    link_targets_lazy(a_doc, name, fun),
+    link_targets_lazy(a_doc, name, opts, fun)
   ], to: Navigation
 
 
