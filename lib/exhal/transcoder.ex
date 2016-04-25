@@ -146,21 +146,16 @@ defmodule ExHal.Transcoder do
    * options - Keywords arguments
      - :param - the name of the param that maps to this link. Required.
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
-     - :multiple - output is a list of one or more values
   """
   defmacro deflink(rel, options \\ []) do
     param_name = Keyword.fetch!(options, :param)
     value_converter = Keyword.get(options, :value_converter, IdentityConverter)
     extractor_name = :"extract_#{param_name}"
     injector_name = :"inject_#{param_name}"
-    multiple = Keyword.get(options, :multiple, false)
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        case unquote(multiple) do
-          false -> ExHal.link_target_lazy(doc, unquote(rel), fn -> :missing end)
-          true -> ExHal.link_targets_lazy(doc, unquote(rel), fn -> :missing end)
-        end
+        ExHal.link_target_lazy(doc, unquote(rel), fn -> :missing end)
         |> decode_value(unquote(value_converter))
         |> put_param(params, unquote(param_name))
       end
