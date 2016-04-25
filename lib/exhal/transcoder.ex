@@ -195,7 +195,7 @@ defmodule ExHal.Transcoder do
       def unquote(injector_name)(doc, params) do
         Map.get(params, unquote(param_name), :missing)
         |> encode_value(unquote(value_converter))
-        |> put_link(doc, unquote(rel))
+        |> Enum.reduce(doc, &(put_link(&1, &2, unquote(rel))))
       end
       @injectors unquote(injector_name)
     end

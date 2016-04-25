@@ -74,7 +74,7 @@ defmodule ExHal.TranscoderTest do
    assert %{tag: ["urn:1", "http://2", "foo:1"]} == MyOtherMultiLinkTranscoder.decode!(doc)
 
    encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: ["urn:1", "http://2", "foo:1"]})
-   assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_target(encoded, "tag")
+   assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
   end
 
 
