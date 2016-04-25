@@ -97,6 +97,14 @@ defmodule ExHal.Navigation do
     end
   end
 
+  @doc """
+    Returns `{:ok, [url1, ...]}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
+
+    * a_doc - `ExHal.Document` in which to search for links
+    * name - the rel of the link of interest
+    * opts
+      * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
+    """
   def link_targets(a_doc, name, opts \\ %{}) do
     opts = Map.new(opts)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
