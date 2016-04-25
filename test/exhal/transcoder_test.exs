@@ -7,7 +7,12 @@ defmodule ExHal.TranscoderTest do
       "thing" : 1,
       "TheOtherThing": 2,
       "_links": {
-        "up": { "href": "http://example.com/1" }
+        "up": { "href": "http://example.com/1" },
+        "tag": [
+          {"href": "foo:1"},
+          {"href": "http://2"},
+          {"href": "urn:1"}
+        ]
       }
     }
     """
@@ -58,6 +63,19 @@ defmodule ExHal.TranscoderTest do
     encoded = MyLinkTranscoder.encode!(%{mylink: "http://example.com/1"})
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
   end
+
+ test "trying to extract multiple links", %{doc: doc} do
+   defmodule MyMultiLinkTranscoder do
+     use ExHal.Transcoder
+
+     deflink "tag", param: :tag
+   end
+
+   assert MyMultiLinkTranscoder.decode!(doc) == %{tag: ["foo:1", "http://2", "urn:1"]}
+
+   encoded = MyMultiLinkTranscoder.encode!(%{tag: ["foo:1", "http://2", "urn:1"]})
+   assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
+ end
 
   test "trying to extract links with value conversion", %{doc: doc} do
     defmodule MyLinkConverter do
