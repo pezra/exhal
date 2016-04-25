@@ -157,10 +157,9 @@ defmodule ExHal.Transcoder do
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        links = ExHal.link_targets_lazy(doc, unquote(rel), fn -> :missing end)
         case unquote(multiple) do
-          false -> links
-          true -> List.first(links)
+          false -> ExHal.link_target_lazy(doc, unquote(rel), fn -> :missing end)
+          true -> ExHal.link_targets_lazy(doc, unquote(rel), fn -> :missing end)
         end
         |> decode_value(unquote(value_converter))
         |> put_param(params, unquote(param_name))
