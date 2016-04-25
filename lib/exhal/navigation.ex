@@ -102,7 +102,7 @@ defmodule ExHal.Navigation do
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> {:error, %Error{reason: "no such link: #{name}"}}
-      (links = [_|[_|_]]) ->
+      links ->
         {:ok, links
         |> Enum.map(fn(link) -> {:ok, target} = find_link_target(link, tmpl_vars); target end)}
     end
