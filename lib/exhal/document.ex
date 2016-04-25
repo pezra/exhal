@@ -179,7 +179,6 @@ defmodule ExHal.Document do
     %{doc | links: Map.put(doc.links, rel, new_rel_links)}
   end
 
-
   defp links_sections_to_json_map(doc) do
     {embedded, references} = doc.links
     |> Map.to_list

@@ -84,7 +84,7 @@ defmodule ExHal.Navigation do
     * name - the rel of the link of interest
     * opts
       * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
-      * `:strict` - true if the existance of multiple matching links should cause a failure. Default: `false`
+      * `:strict` - true if the existence of multiple matching links should cause a failure. Default: `false`
     """
   def link_target(a_doc, name, opts \\ %{}) do
     opts = Map.new(opts)
@@ -92,11 +92,34 @@ defmodule ExHal.Navigation do
     strict?   = Map.get(opts, :strict, false)
 
     case figure_link(a_doc, name, !strict?) do
-      {:ok, link} -> case Link.target_url(link, tmpl_vars) do
-                       {:ok, url} -> {:ok, url}
-                       :error -> {:error, %Error{reason: "link has no href member"}}
-                     end
+      {:ok, link} -> find_link_target(link, tmpl_vars)
       (r = _) -> r
+    end
+  end
+
+  @doc """
+    Returns `{:ok, [url1, ...]}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
+
+    * a_doc - `ExHal.Document` in which to search for links
+    * name - the rel of the link of interest
+    * opts
+      * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
+    """
+  def link_targets(a_doc, name, opts \\ %{}) do
+    opts = Map.new(opts)
+    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
+    case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
+      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+      links ->
+        {:ok, links
+        |> Enum.map(fn(link) -> {:ok, target} = find_link_target(link, tmpl_vars); target end)}
+    end
+  end
+
+  def link_targets_lazy(a_doc, name, opts \\ %{}, fun) do
+    case link_targets(a_doc, name, opts) do
+      {:ok, links} -> links
+      {:error, _} -> fun.()
     end
   end
 
@@ -108,6 +131,13 @@ defmodule ExHal.Navigation do
   end
 
   # privates
+
+  defp find_link_target(link, tmpl_vars) do
+    case Link.target_url(link, tmpl_vars) do
+      :error -> {:error, %Error{reason: "link has no href member"}}
+      successful -> successful
+    end
+  end
 
   defp figure_link(a_doc, name, pick_volunteer?) do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
