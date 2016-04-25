@@ -163,7 +163,12 @@ Given a document like
   "mailingAddress": "123 Main St",
   "_links": {
     "app:department": { "href": "http://example.com/dept/42" },
-    "app:manager":    { "href": "http://example.com/people/84" }
+    "app:manager":    { "href": "http://example.com/people/84" },
+    "tag": [
+      {"href": "foo:1"},
+      {"href": "http://2"},
+      {"href": "urn:1"}
+    ]
   }
 }
 ```
@@ -178,6 +183,7 @@ defmodule PersonTranscoder do
   defproperty "mailingAddress", param: :address
   deflink     "app:department", param: :department_url
   deflink     "app:manager",    param: :manager_id, value_converter: PersonUrlConverter
+  deflinks    "tags"
 end
 ```
 
