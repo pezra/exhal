@@ -84,7 +84,7 @@ defmodule ExHal.Navigation do
     * name - the rel of the link of interest
     * opts
       * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
-      * `:strict` - true if the existance of multiple matching links should cause a failure. Default: `false`
+      * `:strict` - true if the existence of multiple matching links should cause a failure. Default: `false`
     """
   def link_target(a_doc, name, opts \\ %{}) do
     opts = Map.new(opts)
