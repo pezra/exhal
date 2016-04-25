@@ -175,6 +175,37 @@ defmodule ExHal.Transcoder do
     end
   end
 
+  @doc """
+  Define a link extractor & injector for links that may have more than one item.
+
+   * rel - the rel of the link in HAL
+   * options - Keywords arguments
+     - :param - the name of the param that maps to this link. Required.
+     - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
+  """
+  defmacro deflinks(rel, options \\ []) do
+    param_name = Keyword.fetch!(options, :param)
+    value_converter = Keyword.get(options, :value_converter, IdentityConverter)
+    extractor_name = :"extract_#{param_name}"
+    injector_name = :"inject_#{param_name}"
+
+    quote do
+      def unquote(extractor_name)(doc, params) do
+        ExHal.link_targets_lazy(doc, unquote(rel), fn -> :missing end)
+        |> decode_value(unquote(value_converter))
+        |> put_param(params, unquote(param_name))
+      end
+      @extractors unquote(extractor_name)
+
+      def unquote(injector_name)(doc, params) do
+        Map.get(params, unquote(param_name), :missing)
+        |> encode_value(unquote(value_converter))
+        |> put_link(doc, unquote(rel))
+      end
+      @injectors unquote(injector_name)
+    end
+  end
+
   def decode_value(:missing), do: :missing
   def decode_value(raw_value, converter) do
     converter.from_hal(raw_value)
