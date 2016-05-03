@@ -228,7 +228,12 @@ iex> PersonTranscoder.encode!(%{name: "Jane Doe",
 } )
 ```
 
+
 This can be used to, for example, build Ecto changesets via a `changeset/2` functions and to render HAL responses to HTTP requests.
+
+#### Composing
+
+Transcoders are also chainable. For example, given a `ManagerTranscoder` the following would produce a Map that includes all person params and all the manager params: `PersonTranscoder.decode!(doc) |> ManagerTranscoder.decode!(doc)`. Similarly ``PersonTranscoder.encode!(model) |> ManagerTranscoder.encode!(module)` would produce an `ExHal.Document` that has all the properties and links defined in those transcoders.
 
 
 ### Assertions about HAL documents

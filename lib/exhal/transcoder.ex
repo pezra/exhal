@@ -84,14 +84,16 @@ defmodule ExHal.Transcoder do
 
   defmacro __before_compile__(_env) do
     quote do
-      def decode!(doc) do
+      def decode!(doc), do: decode!(%{}, doc)
+      def decode!(initial_params, doc) do
         @extractors
-        |> Enum.reduce(%{}, &(apply(__MODULE__, &1, [doc, &2])))
+        |> Enum.reduce(initial_params, &(apply(__MODULE__, &1, [doc, &2])))
       end
 
-      def encode!(params) do
+      def encode!(params), do: encode!(%ExHal.Document{}, params)
+      def encode!(initial_doc, params) do
         @injectors
-        |> Enum.reduce(%ExHal.Document{}, &(apply(__MODULE__, &1, [&2, params])))
+        |> Enum.reduce(initial_doc, &(apply(__MODULE__, &1, [&2, params])))
       end
     end
   end
@@ -225,4 +227,5 @@ defmodule ExHal.Transcoder do
   def put_property(value, doc, prop_name) do
     ExHal.Document.put_property(doc, prop_name, value)
   end
+
 end
