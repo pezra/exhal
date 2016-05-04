@@ -110,30 +110,37 @@ defmodule ExHal.Transcoder do
     def to_hal(it), do: it
   end
 
+  defp interpret_opts(options, name) do
+    param_names = options |> Keyword.get(:param, String.to_atom(name)) |> List.wrap
+    value_converter = Keyword.get(options, :value_converter, IdentityConverter)
+    extractor_name = :"extract_#{Enum.join(param_names,".")}"
+    injector_name = :"inject_#{Enum.join(param_names,".")}"
+
+    {param_names, value_converter, extractor_name, injector_name}
+  end
+
   @doc """
   Define a property extractor and injector.
 
    * name - the name of the property in HAL
    * options - Keywords arguments
-     - :param - the name of the param that maps to this property. Default is `String.to_atom(name)`.
+     - :param - the key(s) in the param structure that map to this property. Default is `String.to_atom(name)`.
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the value to and from HAL
   """
   defmacro defproperty(name, options \\ []) do
-    param_name = Keyword.get_lazy(options, :param, fn -> String.to_atom(name) end)
-    value_converter = Keyword.get(options, :value_converter, IdentityConverter)
-    extractor_name = :"extract_#{param_name}"
-    injector_name = :"inject_#{param_name}"
+    {param_names, value_converter, extractor_name, injector_name} =
+      interpret_opts(options, name)
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        ExHal.get_lazy(doc, unquote(name), fn -> :missing end)
+        ExHal.get_lazy(doc, unquote(name), fn -> nil end)
         |> decode_value(unquote(value_converter))
-        |> put_param(params, unquote(param_name))
+        |> put_param(params, unquote(param_names))
       end
       @extractors unquote(extractor_name)
 
       def unquote(injector_name)(doc, params) do
-        Map.get(params, unquote(param_name), :missing)
+        get_in(params, unquote(param_names))
         |> encode_value(unquote(value_converter))
         |> put_property(doc, unquote(name))
       end
@@ -146,25 +153,23 @@ defmodule ExHal.Transcoder do
 
    * rel - the rel of the link in HAL
    * options - Keywords arguments
-     - :param - the name of the param that maps to this link. Required.
+     - :param - the key(s) in the param structure that maps to this link. Required.
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
   """
   defmacro deflink(rel, options \\ []) do
-    param_name = Keyword.fetch!(options, :param)
-    value_converter = Keyword.get(options, :value_converter, IdentityConverter)
-    extractor_name = :"extract_#{param_name}"
-    injector_name = :"inject_#{param_name}"
+    {param_names, value_converter, extractor_name, injector_name} =
+      interpret_opts(options, rel)
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        ExHal.link_target_lazy(doc, unquote(rel), fn -> :missing end)
+        ExHal.link_target_lazy(doc, unquote(rel), fn -> nil end)
         |> decode_value(unquote(value_converter))
-        |> put_param(params, unquote(param_name))
+        |> put_param(params, unquote(param_names))
       end
       @extractors unquote(extractor_name)
 
       def unquote(injector_name)(doc, params) do
-        Map.get(params, unquote(param_name), :missing)
+        get_in(params, unquote(param_names))
         |> encode_value(unquote(value_converter))
         |> put_link(doc, unquote(rel))
       end
@@ -177,25 +182,23 @@ defmodule ExHal.Transcoder do
 
    * rel - the rel of the link in HAL
    * options - Keywords arguments
-     - :param - the name of the param that maps to this link. Required.
+     - :param - the key(s) in the param structure that maps to this link. Required.
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
   """
   defmacro deflinks(rel, options \\ []) do
-    param_name = Keyword.fetch!(options, :param)
-    value_converter = Keyword.get(options, :value_converter, IdentityConverter)
-    extractor_name = :"extract_#{param_name}"
-    injector_name = :"inject_#{param_name}"
+    {param_names, value_converter, extractor_name, injector_name} =
+      interpret_opts(options, rel)
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        ExHal.link_targets_lazy(doc, unquote(rel), fn -> :missing end)
+        ExHal.link_targets_lazy(doc, unquote(rel), fn -> nil end)
         |> decode_value(unquote(value_converter))
-        |> put_param(params, unquote(param_name))
+        |> put_param(params, unquote(param_names))
       end
       @extractors unquote(extractor_name)
 
       def unquote(injector_name)(doc, params) do
-        Map.get(params, unquote(param_name), :missing)
+        get_in(params, unquote(param_names))
         |> encode_value(unquote(value_converter))
         |> Enum.reduce(doc, &(put_link(&1, &2, unquote(rel))))
       end
@@ -203,29 +206,43 @@ defmodule ExHal.Transcoder do
     end
   end
 
-  def decode_value(:missing), do: :missing
+  def decode_value(nil), do: nil
   def decode_value(raw_value, converter) do
     converter.from_hal(raw_value)
   end
 
-  def put_param(:missing, params, _), do: params
-  def put_param(value, params, param_name) do
-    Map.put(params, param_name, value)
+  def put_param(nil, params, _), do: params
+  def put_param(value, params, param_names) do
+    params = build_out_containers(params, param_names)
+
+    put_in(params, param_names, value)
   end
 
-  def encode_value(:missing, _), do: :missing
+  def encode_value(nil, _), do: nil
   def encode_value(raw_value, converter) do
     converter.to_hal(raw_value)
   end
 
-  def put_link(:missing, doc, _), do: doc
+  def put_link(nil, doc, _), do: doc
   def put_link(target, doc, rel) do
     ExHal.Document.put_link(doc, rel, target)
   end
 
-  def put_property(:missing, doc, _), do: doc
+  def put_property(nil, doc, _), do: doc
   def put_property(value, doc, prop_name) do
     ExHal.Document.put_property(doc, prop_name, value)
   end
 
+  defp build_out_containers(params, [_h] = _param_names), do: params
+  defp build_out_containers(params, param_names) do
+    containers = (1..(Enum.count(param_names) - 1))
+    |> Enum.map(&Enum.take(param_names, &1))
+
+    params = containers
+    |> Enum.reduce(params, fn(c, acc) -> case get_in(acc, c) do
+                                           nil -> put_in(acc, c, %{})
+                                           _ -> acc
+                                         end
+    end)
+  end
 end
