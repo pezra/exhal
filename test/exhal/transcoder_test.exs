@@ -6,13 +6,15 @@ defmodule ExHal.TranscoderTest do
     {
       "thing" : 1,
       "TheOtherThing": 2,
+      "yer_mom": true,
       "_links": {
         "up": { "href": "http://example.com/1" },
         "tag": [
           {"href": "foo:1"},
           {"href": "http://2"},
           {"href": "urn:1"}
-        ]
+        ],
+        "nested": { "href": "http://example.com/2" }
       }
     }
     """
@@ -41,27 +43,33 @@ defmodule ExHal.TranscoderTest do
       defproperty "thing"
       defproperty "TheOtherThing", param: :thing2, value_converter: NegationConverter
       defproperty "missingThing",  param: :thing3
+      defproperty "yer_mom", param: [:yer, :mom]
     end
 
-    assert MyOverreachingTranscoder.decode!(doc) == %{thing: 1, thing2: -2}
+    assert %{thing: 1, thing2: -2, yer: %{mom: true}} == MyOverreachingTranscoder.decode!(doc)
 
-    encoded = MyOverreachingTranscoder.encode!(%{thing: 1, thing2: 2})
+    encoded = MyOverreachingTranscoder.encode!(%{thing: 1, thing2: 2, yer: %{mom: true}})
     assert 1 == ExHal.get_lazy(encoded, "thing", fn -> :missing end)
     assert -2 == ExHal.get_lazy(encoded, "TheOtherThing", fn -> :missing end)
+    assert true == ExHal.get_lazy(encoded, "yer_mom", fn -> :missing end)
     assert :missing == ExHal.get_lazy(encoded, "missingThing", fn -> :missing end)
   end
 
-  test "trying to extract links", %{doc: doc} do
+  test "extract links", %{doc: doc} do
     defmodule MyLinkTranscoder do
       use ExHal.Transcoder
 
       deflink "up", param: :mylink
+      deflink "nested", param: [:nested, :url]
     end
 
-    assert MyLinkTranscoder.decode!(doc) == %{mylink: "http://example.com/1"}
+    assert MyLinkTranscoder.decode!(doc) == %{mylink: "http://example.com/1",
+                                             nested: %{url: "http://example.com/2"}}
 
-    encoded = MyLinkTranscoder.encode!(%{mylink: "http://example.com/1"})
+    encoded = MyLinkTranscoder.encode!(%{mylink: "http://example.com/1",
+                                         nested: %{url: "http://example.com/2"}})
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
+    assert {:ok, "http://example.com/2"} == ExHal.link_target(encoded, "nested")
   end
 
   test "trying to extract multiple links", %{doc: doc} do
