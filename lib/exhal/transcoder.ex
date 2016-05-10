@@ -71,6 +71,29 @@ defmodule ExHal.Transcoder do
     ```
     """
 
+  @type t :: module
+
+  @callbackdoc"""
+  Returns a decoded version of HAL document merged with the initial params.
+
+  initial_params - the initial params with which the newly extracted info should
+    merged.
+  src_doc - the document to interpret
+  """
+  @callback decode!(%{}, ExHal.Document.t) :: %{}
+  @callback decode!(ExHal.Document.t) :: %{}
+
+  @callbackdoc"""
+  Returns an HAL version of params provided, combined with the initial doc.
+
+  initial_doc - the initial document with which the newly encoded info should
+    merged.
+  src_params - the params to encoded into HAL
+  """
+  @callback encode!(Exhal.Document.t, %{}) :: ExHal.Document.t
+  @callback encode!(%{}) :: ExHal.Document.t
+
+
   defmacro __using__(_opts) do
     quote do
       import unquote(__MODULE__)
@@ -84,6 +107,8 @@ defmodule ExHal.Transcoder do
 
   defmacro __before_compile__(_env) do
     quote do
+      @behaviour ExHal.Transcoder
+
       def decode!(doc), do: decode!(%{}, doc)
       def decode!(initial_params, doc) do
         @extractors
@@ -99,7 +124,20 @@ defmodule ExHal.Transcoder do
   end
 
   defmodule ValueConverter do
+    @type t :: module
+
+    @callbackdoc"""
+    Returns Elixir representation of HAL value.
+
+    hal_value - The HAL representation of the value to convert.
+    """
     @callback from_hal(any) :: any
+
+    @callbackdoc"""
+    Returns HAL representation of Elixir value.
+
+    elixir_value - The Elixir representation of the value to convert.
+    """
     @callback to_hal(any) :: any
   end
 

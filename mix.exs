@@ -28,6 +28,7 @@ defmodule ExHal.Mixfile do
 
       {:earmark, ">= 0.0.0", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
+      {:dialyxir, "~> 0.3", only: :dev},
 
       {:exvcr, "~> 0.7", only: :test},
       {:excoveralls, "~> 0.4", only: :test}

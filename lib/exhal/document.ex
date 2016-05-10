@@ -3,6 +3,8 @@ defmodule ExHal.Document do
     A document is the representaion of a single resource in HAL.
   """
 
+  @type t :: %__MODULE__{}
+
   alias ExHal.Link
   alias ExHal.NsReg
 
