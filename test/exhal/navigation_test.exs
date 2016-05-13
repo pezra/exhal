@@ -50,7 +50,9 @@ defmodule ExHal.NavigationTest do
 
   test ".link_target", %{doc: doc} do
     assert {:ok, "http://example.com/"} = Navigation.link_target(doc, "single")
-    assert {:ok, "http://example.com/e"} = Navigation.link_target(doc, "embedded")
+
+    embedded_linked_doc = doc.links["embedded"] |> List.first |> Map.get(:target)
+    assert {:ok, embedded_linked_doc} = Navigation.link_target(doc, "embedded")
 
     assert {:ok, "http://example.com/?q=hello"} = Navigation.link_target(doc, "tmpl", tmpl_vars: %{q: "hello"})
 

@@ -132,6 +132,10 @@ defmodule ExHal.Navigation do
 
   # privates
 
+  defp find_link_target(%ExHal.Link{target: %ExHal.Document{}} = link, tmpl_vars) do
+    {:ok, link.target}
+  end
+
   defp find_link_target(link, tmpl_vars) do
     case Link.target_url(link, tmpl_vars) do
       :error -> {:error, %Error{reason: "link has no href member"}}
