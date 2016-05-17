@@ -48,6 +48,19 @@ defmodule ExHal.NavigationTest do
     end
   end
 
+  test ".patch", %{doc: doc} do
+    new_thing_hal = hal_str("http://example.com/new-thing")
+
+    stub_request "patch", url: "http://example.com/",
+                        req_body: "patch body",
+                        resp_body: new_thing_hal do
+      assert {:ok, (target = %Document{})} =
+        Navigation.patch(doc, "single", "patch body")
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+    end
+  end
+
   test ".link_target", %{doc: doc} do
     assert {:ok, "http://example.com/"} = Navigation.link_target(doc, "single")
     assert {:ok, "http://example.com/e"} = Navigation.link_target(doc, "embedded")

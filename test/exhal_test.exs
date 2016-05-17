@@ -228,6 +228,16 @@ defmodule ExHalTest do
       end
     end
 
+    test ".patch w/ normal link" do
+      new_thing_hal = hal_str("http://example.com/new-thing")
+
+      stub_request "patch", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
+        assert {:ok, (target = %Document{})} = ExHal.patch(doc, "single", new_thing_hal)
+
+        assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      end
+    end
+
     defp doc do
       ExHal.Document.from_parsed_hal(ExHal.client,
         %{"_links" =>

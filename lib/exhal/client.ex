@@ -47,6 +47,14 @@ defmodule ExHal.Client do
     end
   end
 
+  def patch(client, url, body, opts \\ []) do
+  {headers, poison_opts} = figure_headers_and_opt(opts, client)
+
+    log_req("PATCH", url) do
+      HTTPoison.patch(url, body, headers, poison_opts)
+      |> extract_return(client)
+    end
+  end
 
   defp figure_headers_and_opt(opts, client) do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])

@@ -123,6 +123,9 @@ defmodule ExHal do
     post(a_doc, name, body),
     post(a_doc, name, body, opts),
 
+    patch(a_doc, name, body),
+    patch(a_doc, name, body, opts),
+
     link_target(a_doc, name),
     link_target(a_doc, name, opts),
 
