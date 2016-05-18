@@ -282,5 +282,5 @@ Installation
 Add the following to your project `:deps` list:
 
 ```elixir
-{:exhal, "~>2.0"}
+{:exhal, "~> 4.10"}
 ```
