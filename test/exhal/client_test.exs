@@ -76,6 +76,19 @@ defmodule ExHal.ClientHttpRequestTest do
     end
   end
 
+  test ".patch w/ normal link", %{client: client} do
+    new_thing_hal = hal_str("http://example.com/new-thing")
+
+    stub_request "patch", url: "http://example.com/",
+                        req_body: "the request body",
+                        resp_body: new_thing_hal do
+      assert {:ok, (target = %Document{})} =
+        Client.patch(client, "http://example.com/", "the request body")
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+    end
+  end
+
 
   # Background
 

@@ -78,6 +78,22 @@ defmodule ExHal.Navigation do
   end
 
   @doc """
+  PATCHs data to the named link in a HAL document.
+
+  Returns `{:ok, %ExHal.Document{...}}` if response is successful and body is HAL;
+  `{:error, %ExHal.Error{...}}` if response is an error if not
+  """
+  def patch(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
+    pick_volunteer? = !(Map.get opts, :strict, true)
+    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
+
+    case figure_link(a_doc, name, pick_volunteer?) do
+      {:error, e} -> {:error, e}
+      {:ok, link} -> Client.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+    end
+  end
+
+  @doc """
     Returns `{:ok, url}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
 
     * a_doc - `ExHal.Document` in which to search for links
