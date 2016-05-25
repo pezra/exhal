@@ -174,9 +174,9 @@ defmodule ExHal.Document do
 
     Returns new ExHal.Document with the specified link.
   """
-  def put_link(doc, rel, target) do
+  def put_link(doc, rel, target, templated \\ false) do
     new_rel_links = Map.get(doc.links, rel, []) ++
-      [%ExHal.Link{rel: rel, href: target, templated: false, name: nil}]
+      [%ExHal.Link{rel: rel, href: target, templated: templated, name: nil}]
 
     %{doc | links: Map.put(doc.links, rel, new_rel_links)}
   end
