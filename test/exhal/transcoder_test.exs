@@ -14,7 +14,8 @@ defmodule ExHal.TranscoderTest do
           {"href": "http://2"},
           {"href": "urn:1"}
         ],
-        "nested": { "href": "http://example.com/2" }
+        "nested": { "href": "http://example.com/2" },
+        "fillin": { "href": "http://example.com/3{?data}", "templated": true}
       }
     }
     """
@@ -61,15 +62,21 @@ defmodule ExHal.TranscoderTest do
 
       deflink "up", param: :mylink
       deflink "nested", param: [:nested, :url]
+      deflink "fillin", param: :fillin, templated: true
     end
 
     assert MyLinkTranscoder.decode!(doc) == %{mylink: "http://example.com/1",
-                                             nested: %{url: "http://example.com/2"}}
+                                              nested: %{url: "http://example.com/2"},
+                                              fillin: "http://example.com/3{?data}"
+                                             }
 
     encoded = MyLinkTranscoder.encode!(%{mylink: "http://example.com/1",
-                                         nested: %{url: "http://example.com/2"}})
+                                         nested: %{url: "http://example.com/2"},
+                                         fillin: "http://example.com/3{?data}"})
+
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
     assert {:ok, "http://example.com/2"} == ExHal.link_target(encoded, "nested")
+    assert {:ok, "http://example.com/3?data=INFO"} == ExHal.link_target(encoded, "fillin", tmpl_vars: [data: "INFO"])
   end
 
   test "trying to extract multiple links", %{doc: doc} do

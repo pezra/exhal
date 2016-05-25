@@ -150,11 +150,12 @@ defmodule ExHal.Transcoder do
 
   defp interpret_opts(options, name) do
     param_names = options |> Keyword.get(:param, String.to_atom(name)) |> List.wrap
+    templated = options |> Keyword.get(:templated, false)
     value_converter = Keyword.get(options, :value_converter, IdentityConverter)
     extractor_name = :"extract_#{Enum.join(param_names,".")}"
     injector_name = :"inject_#{Enum.join(param_names,".")}"
 
-    {param_names, value_converter, extractor_name, injector_name}
+    {param_names, value_converter, extractor_name, injector_name, templated}
   end
 
   @doc """
@@ -166,7 +167,7 @@ defmodule ExHal.Transcoder do
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the value to and from HAL
   """
   defmacro defproperty(name, options \\ []) do
-    {param_names, value_converter, extractor_name, injector_name} =
+    {param_names, value_converter, extractor_name, injector_name, _} =
       interpret_opts(options, name)
 
     quote do
@@ -192,15 +193,18 @@ defmodule ExHal.Transcoder do
    * rel - the rel of the link in HAL
    * options - Keywords arguments
      - :param - the key(s) in the param structure that maps to this link. Required.
+     - :templated - a boolean that adds a `templated: true` parameter if true
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
   """
   defmacro deflink(rel, options \\ []) do
-    {param_names, value_converter, extractor_name, injector_name} =
+    {param_names, value_converter, extractor_name, injector_name, templated} =
       interpret_opts(options, rel)
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        ExHal.link_target_lazy(doc, unquote(rel), fn -> nil end)
+        ExHal.get_links_lazy(doc, unquote(rel), fn -> nil end)
+        |> List.first
+        |> Map.fetch!(:href)
         |> decode_value(unquote(value_converter))
         |> put_param(params, unquote(param_names))
       end
@@ -209,7 +213,7 @@ defmodule ExHal.Transcoder do
       def unquote(injector_name)(doc, params) do
         get_in(params, unquote(param_names))
         |> encode_value(unquote(value_converter))
-        |> put_link(doc, unquote(rel))
+        |> put_link(doc, unquote(rel), unquote(templated))
       end
       @injectors unquote(injector_name)
     end
@@ -224,7 +228,7 @@ defmodule ExHal.Transcoder do
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
   """
   defmacro deflinks(rel, options \\ []) do
-    {param_names, value_converter, extractor_name, injector_name} =
+    {param_names, value_converter, extractor_name, injector_name, _} =
       interpret_opts(options, rel)
 
     quote do
@@ -262,8 +266,8 @@ defmodule ExHal.Transcoder do
   end
 
   def put_link(nil, doc, _), do: doc
-  def put_link(target, doc, rel) do
-    ExHal.Document.put_link(doc, rel, target)
+  def put_link(target, doc, rel, templated \\ false) do
+    ExHal.Document.put_link(doc, rel, target, templated)
   end
 
   def put_property(nil, doc, _), do: doc
