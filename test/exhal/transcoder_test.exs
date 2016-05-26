@@ -79,6 +79,23 @@ defmodule ExHal.TranscoderTest do
     assert {:ok, "http://example.com/3?data=INFO"} == ExHal.link_target(encoded, "fillin", tmpl_vars: [data: "INFO"])
   end
 
+  test "don't try to extract links from document that has no links" do
+    defmodule MyTinyTranscoder do
+      use ExHal.Transcoder
+
+      deflink "up", param: :mylink
+    end
+
+    hal = """
+    {
+      "_links": {}
+    }
+    """
+
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    assert MyTinyTranscoder.decode!(doc) == %{}
+  end
+
   test "trying to extract multiple links", %{doc: doc} do
    defmodule MyOtherMultiLinkTranscoder do
      use ExHal.Transcoder
