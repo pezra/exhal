@@ -9,6 +9,8 @@ defmodule ExHal.TranscoderTest do
       "yer_mom": true,
       "_links": {
         "up": { "href": "http://example.com/1" },
+        "none": [],
+        "nolink": { "href": null},
         "tag": [
           {"href": "foo:1"},
           {"href": "http://2"},
@@ -61,6 +63,8 @@ defmodule ExHal.TranscoderTest do
       use ExHal.Transcoder
 
       deflink "up", param: :mylink
+      deflink "none", param: :none
+      deflink "nolink", param: :nolink
       deflink "nested", param: [:nested, :url]
       deflink "fillin", param: :fillin, templated: true
     end
@@ -77,6 +81,23 @@ defmodule ExHal.TranscoderTest do
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
     assert {:ok, "http://example.com/2"} == ExHal.link_target(encoded, "nested")
     assert {:ok, "http://example.com/3?data=INFO"} == ExHal.link_target(encoded, "fillin", tmpl_vars: [data: "INFO"])
+  end
+
+  test "don't try to extract links from document that has no links" do
+    defmodule MyTinyTranscoder do
+      use ExHal.Transcoder
+
+      deflink "up", param: :mylink
+    end
+
+    hal = """
+    {
+      "_links": {}
+    }
+    """
+
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    assert MyTinyTranscoder.decode!(doc) == %{}
   end
 
   test "trying to extract multiple links", %{doc: doc} do
