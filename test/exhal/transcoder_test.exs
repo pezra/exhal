@@ -9,6 +9,8 @@ defmodule ExHal.TranscoderTest do
       "yer_mom": true,
       "_links": {
         "up": { "href": "http://example.com/1" },
+        "none": [],
+        "nolink": { "href": null},
         "tag": [
           {"href": "foo:1"},
           {"href": "http://2"},
@@ -61,6 +63,8 @@ defmodule ExHal.TranscoderTest do
       use ExHal.Transcoder
 
       deflink "up", param: :mylink
+      deflink "none", param: :none
+      deflink "nolink", param: :nolink
       deflink "nested", param: [:nested, :url]
       deflink "fillin", param: :fillin, templated: true
     end

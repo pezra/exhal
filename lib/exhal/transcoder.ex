@@ -202,9 +202,9 @@ defmodule ExHal.Transcoder do
 
     quote do
       def unquote(extractor_name)(doc, params) do
-        ExHal.get_links_lazy(doc, unquote(rel), fn -> [%{}] end)
+        ExHal.get_links_lazy(doc, unquote(rel), fn -> [] end)
+        |> Enum.map(&Map.get(&1, :href))
         |> List.first
-        |> Map.get_lazy(:href, fn -> nil end)
         |> decode_value(unquote(value_converter))
         |> put_param(params, unquote(param_names))
       end
