@@ -4,7 +4,7 @@ defmodule ExHal.Mixfile do
   def project do
     [app: :exhal,
      description: "Use HAL APIs with ease",
-     version: "4.12.1",
+     version: "4.12.2",
      elixir: "~> 1.2",
 
      test_coverage: [tool: ExCoveralls],
@@ -36,7 +36,7 @@ defmodule ExHal.Mixfile do
   end
 
   defp package do
-    [ files: git_files,
+    [ files: git_files -- excluded_files,
       licenses: ["http://opensource.org/licenses/MIT"],
       maintainers: ["Peter Williams"],
       links: %{"homepage": "http://github.com/pezra/exhal"} ]
@@ -49,4 +49,7 @@ defmodule ExHal.Mixfile do
       |> Enum.filter(fn x -> x != "" end)
   end
 
+  defp excluded_files do
+    [ "lib/mix/tasks/release.ex" ]
+  end
 end
