@@ -36,20 +36,9 @@ defmodule ExHal.Mixfile do
   end
 
   defp package do
-    [ files: git_files -- excluded_files,
-      licenses: ["http://opensource.org/licenses/MIT"],
+    [ licenses: ["http://opensource.org/licenses/MIT"],
       maintainers: ["Peter Williams"],
       links: %{"homepage": "http://github.com/pezra/exhal"} ]
   end
 
-  defp git_files do
-    System.cmd("git", ["ls-files", "-z"])
-      |> (fn {x,_} -> x end).()
-      |> String.split(<<0>>)
-      |> Enum.filter(fn x -> x != "" end)
-  end
-
-  defp excluded_files do
-    [ "lib/mix/tasks/release.ex" ]
-  end
 end

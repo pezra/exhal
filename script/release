@@ -1,0 +1,13 @@
+#!/bin/sh
+
+set -x
+mix clean
+mix compile --warnings-as-errors
+
+version=$(mix run -e 'IO.puts Mix.Hex.Build.prepare_package![:meta][:version]')
+git tag "v$version"
+git push --tags
+
+mix hex.publish
+mix hex.docs
+
