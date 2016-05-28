@@ -280,7 +280,7 @@ defmodule ExHal.Transcoder do
     containers = (1..(Enum.count(param_names) - 1))
     |> Enum.map(&Enum.take(param_names, &1))
 
-    params = containers
+    containers
     |> Enum.reduce(params, fn(c, acc) -> case get_in(acc, c) do
                                            nil -> put_in(acc, c, %{})
                                            _ -> acc
