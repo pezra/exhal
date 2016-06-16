@@ -4,7 +4,7 @@ defmodule ExHal.Client do
   alias ExHal.Document
   alias ExHal.NonHalResponse
 
-  defstruct headers: [], opts: [follow_redirects: true]
+  defstruct headers: [], opts: [follow_redirect: true]
 
   def add_headers(client, headers) do
     updated_headers = merge_headers(client.headers, Keyword.new(headers))
