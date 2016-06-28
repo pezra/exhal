@@ -277,10 +277,8 @@ defmodule ExHal.Transcoder do
 
   defp build_out_containers(params, [_h] = _param_names), do: params
   defp build_out_containers(params, param_names) do
-    containers = (1..(Enum.count(param_names) - 1))
+    (1..(Enum.count(param_names) - 1))
     |> Enum.map(&Enum.take(param_names, &1))
-
-    params = containers
     |> Enum.reduce(params, fn(c, acc) -> case get_in(acc, c) do
                                            nil -> put_in(acc, c, %{})
                                            _ -> acc

@@ -107,7 +107,7 @@ defmodule ExHal.TranscoderTest do
      deflinks "tag", param: :tag
    end
 
-   assert %{tag: ["urn:1", "http://2", "foo:1"]} == MyOtherMultiLinkTranscoder.decode!(doc)
+   assert %{tag: ["foo:1", "http://2", "urn:1"]} == MyOtherMultiLinkTranscoder.decode!(doc)
 
    encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: ["urn:1", "http://2", "foo:1"]})
    assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
@@ -147,6 +147,7 @@ defmodule ExHal.TranscoderTest do
       defproperty "thing"
       deflink "up", param: :up_url
     end
+
     defmodule ExtTranscoder do
       use ExHal.Transcoder
       defproperty "TheOtherThing", param: :thing2
@@ -155,21 +156,24 @@ defmodule ExHal.TranscoderTest do
 
     decoded = BaseTranscoder.decode!(doc)
     |> ExtTranscoder.decode!(doc)
+
     assert %{thing: 1} = decoded
     assert %{thing2: 2} = decoded
     assert %{up_url: "http://example.com/1"} = decoded
-    assert %{tag: ["urn:1", "http://2", "foo:1"]} = decoded
+    assert %{tag: ["foo:1", "http://2", "urn:1"]} = decoded
 
     params = %{thing: 1,
                tag: ["urn:1", "http://2", "foo:1"],
                thing2: 2,
                up_url: "http://example.com/1"}
+
     encoded = BaseTranscoder.encode!(params)
     |> ExtTranscoder.encode!(params)
+
     assert 1 == ExHal.get_lazy(encoded, "thing", fn -> :missing end)
     assert 2 == ExHal.get_lazy(encoded, "TheOtherThing", fn -> :missing end)
+
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
     assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
-
   end
 end
