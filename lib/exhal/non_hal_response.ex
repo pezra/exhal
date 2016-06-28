@@ -1,7 +1,5 @@
 defmodule ExHal.NonHalResponse do
-  def __struct__ do
-    %HTTPoison.Response{}
-  end
+  defstruct status_code: nil, body: nil, headers: []
 
   def from_httpoison_response(resp) do
     %{resp | __struct__: __MODULE__}

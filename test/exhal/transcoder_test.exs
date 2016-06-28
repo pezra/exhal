@@ -101,25 +101,32 @@ defmodule ExHal.TranscoderTest do
   end
 
   test "trying to extract multiple links", %{doc: doc} do
-   defmodule MyOtherMultiLinkTranscoder do
-     use ExHal.Transcoder
+    defmodule MyOtherMultiLinkTranscoder do
+      use ExHal.Transcoder
 
-     deflinks "tag", param: :tag
-   end
+      deflinks "tag", param: :tag
+    end
 
-   assert %{tag: ["urn:1", "http://2", "foo:1"]} == MyOtherMultiLinkTranscoder.decode!(doc)
+    %{tag: tags} = MyOtherMultiLinkTranscoder.decode!(doc)
 
-   encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: ["urn:1", "http://2", "foo:1"]})
-   assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
+    assert Enum.member?(tags, "foo:1")
+    assert Enum.member?(tags, "http://2")
+    assert Enum.member?(tags, "urn:1")
+
+    encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: ["urn:1", "http://2", "foo:1"]})
+
+    assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
   end
 
 
   test "trying to extract links with value conversion", %{doc: doc} do
     defmodule MyLinkConverter do
       @behaviour ExHal.Transcoder.ValueConverter
+
       def to_hal(id) do
         "http://example.com/#{id}"
       end
+
       def from_hal(up_url) do
         {id, _} = up_url
         |> String.split("/")
@@ -147,6 +154,7 @@ defmodule ExHal.TranscoderTest do
       defproperty "thing"
       deflink "up", param: :up_url
     end
+
     defmodule ExtTranscoder do
       use ExHal.Transcoder
       defproperty "TheOtherThing", param: :thing2
@@ -155,21 +163,29 @@ defmodule ExHal.TranscoderTest do
 
     decoded = BaseTranscoder.decode!(doc)
     |> ExtTranscoder.decode!(doc)
+
     assert %{thing: 1} = decoded
     assert %{thing2: 2} = decoded
     assert %{up_url: "http://example.com/1"} = decoded
-    assert %{tag: ["urn:1", "http://2", "foo:1"]} = decoded
+
+    %{tag: tags} = decoded
+
+    assert Enum.member?(tags, "foo:1")
+    assert Enum.member?(tags, "http://2")
+    assert Enum.member?(tags, "urn:1")
 
     params = %{thing: 1,
                tag: ["urn:1", "http://2", "foo:1"],
                thing2: 2,
                up_url: "http://example.com/1"}
+
     encoded = BaseTranscoder.encode!(params)
     |> ExtTranscoder.encode!(params)
+
     assert 1 == ExHal.get_lazy(encoded, "thing", fn -> :missing end)
     assert 2 == ExHal.get_lazy(encoded, "TheOtherThing", fn -> :missing end)
+
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
     assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
-
   end
 end

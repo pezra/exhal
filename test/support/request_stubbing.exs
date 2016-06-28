@@ -16,8 +16,12 @@ defmodule RequestStubbing do
 
   def figure_use_cassette_opts(method, opts) do
     opts = Map.new(opts)
+    opts = case method do
+             "get" -> Map.merge(opts, %{req_body: ""})
+             _ -> opts
+           end
+
     url = Map.fetch!(opts, :url)
-    if method == "get", do: opts = Map.merge(opts, %{req_body: ""})
 
     [method:       method,
      url:          url,

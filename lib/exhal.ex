@@ -112,42 +112,39 @@ defmodule ExHal do
     %Client{}
   end
 
-  defdelegate [
-    follow_link(a_doc, name),
-    follow_link(a_doc, name, opts),
+  defdelegate follow_link(a_doc, name), to: Navigation
+  defdelegate follow_link(a_doc, name, opts), to: Navigation
 
-    follow_links(a_doc, name),
-    follow_links(a_doc, name, opts),
-    follow_links(a_doc, name, missing_link_handler, opts),
+  defdelegate follow_links(a_doc, name), to: Navigation
+  defdelegate follow_links(a_doc, name, opts), to: Navigation
+  defdelegate follow_links(a_doc, name, missing_link_handler, opts), to: Navigation
 
-    post(a_doc, name, body),
-    post(a_doc, name, body, opts),
+  defdelegate post(a_doc, name, body), to: Navigation
+  defdelegate post(a_doc, name, body, opts), to: Navigation
 
-    patch(a_doc, name, body),
-    patch(a_doc, name, body, opts),
+  defdelegate patch(a_doc, name, body), to: Navigation
+  defdelegate patch(a_doc, name, body, opts), to: Navigation
 
-    link_target(a_doc, name),
-    link_target(a_doc, name, opts),
+  defdelegate link_target(a_doc, name), to: Navigation
+  defdelegate link_target(a_doc, name, opts), to: Navigation
 
-    link_targets(a_doc, name),
-    link_targets(a_doc, name, opts),
+  defdelegate link_targets(a_doc, name), to: Navigation
+  defdelegate link_targets(a_doc, name, opts), to: Navigation
 
-    link_target_lazy(a_doc, name, fun),
-    link_target_lazy(a_doc, name, opts, fun),
+  defdelegate link_target_lazy(a_doc, name, fun), to: Navigation
+  defdelegate link_target_lazy(a_doc, name, opts, fun), to: Navigation
 
-    link_targets_lazy(a_doc, name, fun),
-    link_targets_lazy(a_doc, name, opts, fun)
-  ], to: Navigation
+  defdelegate link_targets_lazy(a_doc, name, fun), to: Navigation
+  defdelegate link_targets_lazy(a_doc, name, opts, fun), to: Navigation
 
+  defdelegate fetch(a_document, name), to: Document
 
-  defdelegate [
-    fetch(a_document, name),
-    get_lazy(a_doc, name, default_fun),
-    get_property_lazy(a_doc, prop_name, default_fun),
-    get_links_lazy(a_doc, link_name, default_fun),
-    url(a_doc),
-    url(a_doc, default_fn)
-  ], to: Document
+  defdelegate get_lazy(a_doc, name, default_fun), to: Document
+  defdelegate get_property_lazy(a_doc, prop_name, default_fun), to: Document
+  defdelegate get_links_lazy(a_doc, link_name, default_fun), to: Document
+
+  defdelegate url(a_doc), to: Document
+  defdelegate url(a_doc, default_fn), to: Document
 
   @doc """
     Returns a stream that yields the items in the rfc 6573 collection
