@@ -101,25 +101,32 @@ defmodule ExHal.TranscoderTest do
   end
 
   test "trying to extract multiple links", %{doc: doc} do
-   defmodule MyOtherMultiLinkTranscoder do
-     use ExHal.Transcoder
+    defmodule MyOtherMultiLinkTranscoder do
+      use ExHal.Transcoder
 
-     deflinks "tag", param: :tag
-   end
+      deflinks "tag", param: :tag
+    end
 
-   assert %{tag: ["foo:1", "http://2", "urn:1"]} == MyOtherMultiLinkTranscoder.decode!(doc)
+    %{tag: tags} = MyOtherMultiLinkTranscoder.decode!(doc)
 
-   encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: ["urn:1", "http://2", "foo:1"]})
-   assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
+    assert Enum.member?(tags, "foo:1")
+    assert Enum.member?(tags, "http://2")
+    assert Enum.member?(tags, "urn:1")
+
+    encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: ["urn:1", "http://2", "foo:1"]})
+
+    assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
   end
 
 
   test "trying to extract links with value conversion", %{doc: doc} do
     defmodule MyLinkConverter do
       @behaviour ExHal.Transcoder.ValueConverter
+
       def to_hal(id) do
         "http://example.com/#{id}"
       end
+
       def from_hal(up_url) do
         {id, _} = up_url
         |> String.split("/")
@@ -160,7 +167,12 @@ defmodule ExHal.TranscoderTest do
     assert %{thing: 1} = decoded
     assert %{thing2: 2} = decoded
     assert %{up_url: "http://example.com/1"} = decoded
-    assert %{tag: ["foo:1", "http://2", "urn:1"]} = decoded
+
+    %{tag: tags} = decoded
+
+    assert Enum.member?(tags, "foo:1")
+    assert Enum.member?(tags, "http://2")
+    assert Enum.member?(tags, "urn:1")
 
     params = %{thing: 1,
                tag: ["urn:1", "http://2", "foo:1"],
