@@ -79,9 +79,10 @@ defmodule ExHal.Transcoder do
   initial_params - the initial params with which the newly extracted info should
     merged.
   src_doc - the document to interpret
+  opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
-  @callback decode!(%{}, ExHal.Document.t) :: %{}
-  @callback decode!(ExHal.Document.t) :: %{}
+  @callback decode!(%{}, ExHal.Document.t, []) :: %{}
+  @callback decode!(ExHal.Document.t, []) :: %{}
 
   @callbackdoc"""
   Returns an HAL version of params provided, combined with the initial doc.
@@ -89,9 +90,10 @@ defmodule ExHal.Transcoder do
   initial_doc - the initial document with which the newly encoded info should
     merged.
   src_params - the params to encoded into HAL
+  opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
-  @callback encode!(Exhal.Document.t, %{}) :: ExHal.Document.t
-  @callback encode!(%{}) :: ExHal.Document.t
+  @callback encode!(Exhal.Document.t, %{}, []) :: ExHal.Document.t
+  @callback encode!(%{}, []) :: ExHal.Document.t
 
 
   defmacro __using__(_opts) do
@@ -109,17 +111,21 @@ defmodule ExHal.Transcoder do
     quote do
       @behaviour ExHal.Transcoder
 
-      def decode!(doc), do: decode!(%{}, doc)
-      def decode!(initial_params, doc) do
+      def decode!(initial_params, %ExHal.Document{} = doc, opts) do
         @extractors
-        |> Enum.reduce(initial_params, &(apply(__MODULE__, &1, [doc, &2])))
+        |> Enum.reduce(initial_params, &(apply(__MODULE__, &1, [doc, &2, opts])))
       end
+      def decode!(doc, [_|_] = opts), do: decode!(%{}, doc, opts)
+      def decode!(initial_params, %ExHal.Document{} = doc), do: decode!(initial_params, doc, [])
+      def decode!(doc), do: decode!(%{}, doc, [])
 
-      def encode!(params), do: encode!(%ExHal.Document{}, params)
-      def encode!(initial_doc, params) do
+      def encode!(%ExHal.Document{} = initial_doc, params, opts) do
         @injectors
-        |> Enum.reduce(initial_doc, &(apply(__MODULE__, &1, [&2, params])))
+        |> Enum.reduce(initial_doc, &(apply(__MODULE__, &1, [&2, params, opts])))
       end
+      def encode!(params, [_|_] = opts), do: encode!(%ExHal.Document{}, params, opts)
+      def encode!(%ExHal.Document{} = initial_doc, params), do: encode!(initial_doc, params, [])
+      def encode!(params), do: encode!(%ExHal.Document{}, params, [])
     end
   end
 
@@ -139,6 +145,26 @@ defmodule ExHal.Transcoder do
     elixir_value - The Elixir representation of the value to convert.
     """
     @callback to_hal(any) :: any
+  end
+
+  defmodule ValueConverterWithOptions do
+    @type t :: module
+
+    @callbackdoc"""
+    Returns Elixir representation of HAL value.
+
+    hal_value - The HAL representation of the value to convert.
+    opts - Options to be used by the converter.
+    """
+    @callback from_hal(any, any) :: any
+
+    @callbackdoc"""
+    Returns HAL representation of Elixir value.
+
+    elixir_value - The Elixir representation of the value to convert.
+    opts - Options to be used by the converter.
+    """
+    @callback to_hal(any, any) :: any
   end
 
   defmodule IdentityConverter do
@@ -171,16 +197,16 @@ defmodule ExHal.Transcoder do
       interpret_opts(options, name)
 
     quote do
-      def unquote(extractor_name)(doc, params) do
+      def unquote(extractor_name)(doc, params, opts) do
         ExHal.get_lazy(doc, unquote(name), fn -> nil end)
-        |> decode_value(unquote(value_converter))
+        |> decode_value(unquote(value_converter), opts)
         |> put_param(params, unquote(param_names))
       end
       @extractors unquote(extractor_name)
 
-      def unquote(injector_name)(doc, params) do
+      def unquote(injector_name)(doc, params, opts) do
         get_in(params, unquote(param_names))
-        |> encode_value(unquote(value_converter))
+        |> encode_value(unquote(value_converter), opts)
         |> put_property(doc, unquote(name))
       end
       @injectors unquote(injector_name)
@@ -201,18 +227,18 @@ defmodule ExHal.Transcoder do
       interpret_opts(options, rel)
 
     quote do
-      def unquote(extractor_name)(doc, params) do
+      def unquote(extractor_name)(doc, params, opts) do
         ExHal.get_links_lazy(doc, unquote(rel), fn -> [] end)
         |> Enum.map(&Map.get(&1, :href))
         |> List.first
-        |> decode_value(unquote(value_converter))
+        |> decode_value(unquote(value_converter), opts)
         |> put_param(params, unquote(param_names))
       end
       @extractors unquote(extractor_name)
 
-      def unquote(injector_name)(doc, params) do
+      def unquote(injector_name)(doc, params, opts) do
         get_in(params, unquote(param_names))
-        |> encode_value(unquote(value_converter))
+        |> encode_value(unquote(value_converter), opts)
         |> put_link(doc, unquote(rel), unquote(templated))
       end
       @injectors unquote(injector_name)
@@ -232,25 +258,29 @@ defmodule ExHal.Transcoder do
       interpret_opts(options, rel)
 
     quote do
-      def unquote(extractor_name)(doc, params) do
+      def unquote(extractor_name)(doc, params, opts) do
         ExHal.link_targets_lazy(doc, unquote(rel), fn -> nil end)
-        |> decode_value(unquote(value_converter))
+        |> decode_value(unquote(value_converter), opts)
         |> put_param(params, unquote(param_names))
       end
       @extractors unquote(extractor_name)
 
-      def unquote(injector_name)(doc, params) do
+      def unquote(injector_name)(doc, params, opts) do
         get_in(params, unquote(param_names))
-        |> encode_value(unquote(value_converter))
+        |> encode_value(unquote(value_converter), opts)
         |> Enum.reduce(doc, &(put_link(&1, &2, unquote(rel))))
       end
       @injectors unquote(injector_name)
     end
   end
 
-  def decode_value(nil), do: nil
-  def decode_value(raw_value, converter) do
-    converter.from_hal(raw_value)
+  def decode_value(nil, _opts), do: nil
+  def decode_value(raw_value, converter, opts) do
+    if :erlang.function_exported(converter, :from_hal, 2) do
+      converter.from_hal(raw_value, opts)
+    else
+      converter.from_hal(raw_value)
+    end
   end
 
   def put_param(nil, params, _), do: params
@@ -260,9 +290,13 @@ defmodule ExHal.Transcoder do
     put_in(params, param_names, value)
   end
 
-  def encode_value(nil, _), do: nil
-  def encode_value(raw_value, converter) do
-    converter.to_hal(raw_value)
+  def encode_value(nil, _, _opts), do: nil
+  def encode_value(raw_value, converter, opts) do
+    if :erlang.function_exported(converter, :to_hal, 2) do
+      converter.to_hal(raw_value, opts)
+    else
+      converter.to_hal(raw_value)
+    end
   end
 
   def put_link(nil, doc, _), do: doc
