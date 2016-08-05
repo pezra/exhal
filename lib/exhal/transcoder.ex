@@ -81,8 +81,10 @@ defmodule ExHal.Transcoder do
   src_doc - the document to interpret
   opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
-  @callback decode!(%{}, ExHal.Document.t, []) :: %{}
-  @callback decode!(ExHal.Document.t, []) :: %{}
+  @callback decode!(ExHal.Document.t) :: %{}
+  @callback decode!(%{}, ExHal.Document.t) :: %{}
+  @callback decode!(ExHal.Document.t, [key: any]) :: %{}
+  @callback decode!(%{}, ExHal.Document.t, [key: any]) :: %{}
 
   @callbackdoc"""
   Returns an HAL version of params provided, combined with the initial doc.
@@ -92,8 +94,10 @@ defmodule ExHal.Transcoder do
   src_params - the params to encoded into HAL
   opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
-  @callback encode!(Exhal.Document.t, %{}, []) :: ExHal.Document.t
-  @callback encode!(%{}, []) :: ExHal.Document.t
+  @callback encode!(%{}) :: ExHal.Document.t
+  @callback encode!(Exhal.Document.t, %{}) :: ExHal.Document.t
+  @callback encode!(%{}, [key: any]) :: ExHal.Document.t
+  @callback encode!(Exhal.Document.t, %{}, [key: any]) :: ExHal.Document.t
 
 
   defmacro __using__(_opts) do
