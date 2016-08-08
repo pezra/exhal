@@ -160,7 +160,7 @@ defmodule ExHal.Transcoder do
     hal_value - The HAL representation of the value to convert.
     opts - Options to be used by the converter.
     """
-    @callback from_hal(any, any) :: any
+    @callback from_hal(any, keyword) :: any
 
     @callbackdoc"""
     Returns HAL representation of Elixir value.
@@ -168,7 +168,7 @@ defmodule ExHal.Transcoder do
     elixir_value - The Elixir representation of the value to convert.
     opts - Options to be used by the converter.
     """
-    @callback to_hal(any, any) :: any
+    @callback to_hal(any, keyword) :: any
   end
 
   defmodule IdentityConverter do
