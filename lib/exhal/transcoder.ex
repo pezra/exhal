@@ -83,8 +83,8 @@ defmodule ExHal.Transcoder do
   """
   @callback decode!(ExHal.Document.t) :: %{}
   @callback decode!(%{}, ExHal.Document.t) :: %{}
-  @callback decode!(ExHal.Document.t, [key: any]) :: %{}
-  @callback decode!(%{}, ExHal.Document.t, [key: any]) :: %{}
+  @callback decode!(ExHal.Document.t, keyword) :: %{}
+  @callback decode!(%{}, ExHal.Document.t, keyword) :: %{}
 
   @callbackdoc"""
   Returns an HAL version of params provided, combined with the initial doc.
@@ -96,8 +96,8 @@ defmodule ExHal.Transcoder do
   """
   @callback encode!(%{}) :: ExHal.Document.t
   @callback encode!(Exhal.Document.t, %{}) :: ExHal.Document.t
-  @callback encode!(%{}, [key: any]) :: ExHal.Document.t
-  @callback encode!(Exhal.Document.t, %{}, [key: any]) :: ExHal.Document.t
+  @callback encode!(%{}, keyword) :: ExHal.Document.t
+  @callback encode!(Exhal.Document.t, %{}, keyword) :: ExHal.Document.t
 
 
   defmacro __using__(_opts) do
