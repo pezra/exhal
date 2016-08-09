@@ -58,6 +58,26 @@ defmodule ExHal.TranscoderTest do
     assert :missing == ExHal.get_lazy(encoded, "missingThing", fn -> :missing end)
   end
 
+  test "transcoding with dynamic value converters" do
+    defmodule DynamicConverter do
+      @behaviour ExHal.Transcoder.ValueConverterWithOptions
+
+      def to_hal(val, factor: multiplier), do: val * multiplier
+      def from_hal(val, factor: divisor), do: val / divisor
+    end
+
+    defmodule DynamicTranscoder do
+      use ExHal.Transcoder
+
+      defproperty "thing", value_converter: DynamicConverter
+    end
+
+    encoded = DynamicTranscoder.encode!(%{thing: 2}, factor: 2)
+    assert 4 == ExHal.get_lazy(encoded, "thing", fn -> :missing end)
+    decoded = DynamicTranscoder.decode!(encoded, factor: 2)
+    assert 2 == decoded[:thing]
+  end
+
   test "extract links", %{doc: doc} do
     defmodule MyLinkTranscoder do
       use ExHal.Transcoder
