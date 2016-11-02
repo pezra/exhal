@@ -58,6 +58,20 @@ defmodule ExHal.TranscoderTest do
     assert :missing == ExHal.get_lazy(encoded, "missingThing", fn -> :missing end)
   end
 
+  test "re-using transcode params" do
+    defmodule MySimpleTranscoder do
+      use ExHal.Transcoder
+
+      defproperty "firstUse",  param: :thing
+      defproperty "secondUse", param: :thing
+    end
+
+    encoded = MySimpleTranscoder.encode!(%{thing: "thing_value"})
+
+    assert "thing_value" == ExHal.get_lazy(encoded, "firstUse",  fn -> :missing end)
+    assert "thing_value" == ExHal.get_lazy(encoded, "secondUse", fn -> :missing end)
+  end
+
   test "transcoding with dynamic value converters" do
     defmodule DynamicConverter do
       @behaviour ExHal.Transcoder.ValueConverterWithOptions
