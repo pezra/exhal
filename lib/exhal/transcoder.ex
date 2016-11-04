@@ -179,11 +179,13 @@ defmodule ExHal.Transcoder do
   end
 
   defp interpret_opts(options, name) do
+    unique_string = (:rand.uniform * 100_000_000) |> trunc |> Integer.to_string
+
     param_names = options |> Keyword.get(:param, String.to_atom(name)) |> List.wrap
     templated = options |> Keyword.get(:templated, false)
     value_converter = Keyword.get(options, :value_converter, IdentityConverter)
-    extractor_name = :"extract_#{Enum.join(param_names,".")}"
-    injector_name = :"inject_#{Enum.join(param_names,".")}"
+    extractor_name = :"extract_#{unique_string}_#{Enum.join(param_names,".")}"
+    injector_name = :"inject_#{unique_string}_#{Enum.join(param_names,".")}"
 
     {param_names, value_converter, extractor_name, injector_name, templated}
   end
