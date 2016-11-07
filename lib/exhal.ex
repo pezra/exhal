@@ -15,7 +15,7 @@ defmodule ExHal do
     ```
 
     ```elixir
-    iex> doc = ExHal.client
+    iex> {:ok, doc} = ExHal.client
     ...> |> ExHal.Client.add_headers("User-Agent": "MyClient/1.0")
     ...> |> ExHal.Client.get("http://example.com/hal")
     %ExHal.Document{...}
@@ -27,7 +27,7 @@ defmodule ExHal do
     iex> ExHal.follow_link(doc, "profile")
     {:ok, %ExHal.Document{...}}
 
-    iex> ExHal.follow_link("self")
+    iex> ExHal.follow_link(doc, "self")
     {:ok, %ExHal.Document{...}}
 
     iex> ExHal.follow_links(doc, "profile")

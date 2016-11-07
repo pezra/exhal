@@ -23,7 +23,7 @@ Consider a resource `http://example.com/hal` whose HAL representation looks like
 ```
 
 ```elixir
-iex> doc = ExHal.client
+iex> {:ok, doc} = ExHal.client
 ...> |> ExHal.Client.add_headers("User-Agent": "MyClient/1.0")
 ...> |> ExHal.Client.get("http://example.com/hal")
 %ExHal.Document{...}
@@ -37,7 +37,7 @@ Now we have an entry point to the API. From there we can follow links to navigat
 iex> ExHal.follow_link(doc, "profile")
 {:ok, %ExHal.Document{...}}
 
-iex> ExHal.follow_link("self")
+iex> ExHal.follow_link(doc, "self")
 {:ok, %ExHal.Document{...}}
 
 iex> ExHal.follow_links(doc, "profile")
