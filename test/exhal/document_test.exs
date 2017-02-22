@@ -51,6 +51,17 @@ defmodule ExHal.DocumentTest do
     assert ^parsed_hal = Document.to_json_hash(doc)
   end
 
+  test "parsing with null links", %{client: client} do
+    parsed_hal = %{
+      "name" => "My Name",
+      "_links" => %{ "self" => %{"href" => "http://example.com/my-name"},
+                     "foo" => %{"href" => nil}
+                    }}
+
+    doc = Document.from_parsed_hal(client, parsed_hal)
+    refute doc |> Document.has_link?("foo")
+  end
+
   defmodule DocWithProperties do
     use ExUnit.Case, async: true
 

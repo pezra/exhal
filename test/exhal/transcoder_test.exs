@@ -117,6 +117,22 @@ defmodule ExHal.TranscoderTest do
     assert {:ok, "http://example.com/3?data=INFO"} == ExHal.link_target(encoded, "fillin", tmpl_vars: [data: "INFO"])
   end
 
+  test "don't inject a link that has a null href" do
+    defmodule MyEmptyLinkTranscoder do
+      use ExHal.Transcoder
+
+      deflink "present"
+      deflink "present_but_nil"
+      deflink "absent"
+    end
+
+    encoded = MyEmptyLinkTranscoder.encode!(%{present: "http://example.com/present",
+                                              present_but_nil: nil})
+
+    assert {:error, %ExHal.Error{reason: "no such link: absent"}} == ExHal.link_target(encoded, "absent")
+    assert {:error, %ExHal.Error{reason: "no such link: present_but_nil"}} == ExHal.link_target(encoded, "present_but_nil")
+  end
+
   test "don't try to extract links from document that has no links" do
     defmodule MyTinyTranscoder do
       use ExHal.Transcoder

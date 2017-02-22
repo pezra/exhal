@@ -229,8 +229,10 @@ defmodule ExHal.Document do
 
   defp links_section_to_links(links) do
     Enum.flat_map(links, fn {rel, l} ->
-      List.wrap(l) |> Enum.map(&Link.from_links_entry(rel, &1)) end
-    )
+      List.wrap(l)
+      |> Enum.filter(&(&1["href"]))
+      |> Enum.map(&Link.from_links_entry(rel, &1))
+    end)
   end
 
   defp embedded_links_in(client, parsed_json) do
