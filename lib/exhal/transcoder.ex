@@ -306,6 +306,7 @@ defmodule ExHal.Transcoder do
   end
 
   def put_link(nil, doc, _), do: doc
+  def put_link(nil, doc, _, _), do: doc
   def put_link(target, doc, rel, templated \\ false) do
     ExHal.Document.put_link(doc, rel, target, templated)
   end
