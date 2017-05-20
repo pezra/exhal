@@ -99,6 +99,19 @@ defmodule ExHal.Transcoder do
   @callback encode!(%{}, keyword) :: ExHal.Document.t
   @callback encode!(Exhal.Document.t, %{}, keyword) :: ExHal.Document.t
 
+  @callbackdoc"""
+  Updates an existing object, such as one created by ExHal.Transcoder.decode!
+
+  initial_object - a map containing properties, links etc
+  patch_ops - a list of JSON-patch operations (https://tools.ietf.org/html/rfc6902)
+              Supported are "replace" for properties, links, and collections of links
+              and "add" for collections of links.  For example:
+              [ %{"op => "replace", "path" => "/panicLevel", "value" => 42}, # replace a property
+                %{"op => "replace,  "path" => "/_links/answers",   "value" => [ "urn:earth", "urn:universe"]} # replace link collection
+                %{"op => "add",     "path" => "/_links/answers/-", "value" => "urn:everyhing"}] # append to link collection
+  """
+  @callback patch!(%{}, [%{}]) :: %{}
+  @callback patch!(%{}, [%{}], keyword) :: %{}
 
   defmacro __using__(_opts) do
     quote do
@@ -106,6 +119,7 @@ defmodule ExHal.Transcoder do
 
       Module.register_attribute __MODULE__, :extractors, accumulate: true, persist: false
       Module.register_attribute __MODULE__, :injectors,  accumulate: true, persist: false
+      Module.register_attribute __MODULE__, :patchers,   accumulate: true, persist: false
 
       @before_compile unquote(__MODULE__)
     end
@@ -130,6 +144,14 @@ defmodule ExHal.Transcoder do
       def encode!(params, [_|_] = opts), do: encode!(%ExHal.Document{}, params, opts)
       def encode!(%ExHal.Document{} = initial_doc, params), do: encode!(initial_doc, params, [])
       def encode!(params), do: encode!(%ExHal.Document{}, params, [])
+
+      def patch!(initial_object, patch_ops), do: patch!(initial_object, patch_ops, [])
+      def patch!(initial_object, [], _opts), do: initial_object
+      def patch!(initial_object, [patch_op | remaining_ops], opts) do
+        @patchers
+        |> Enum.reduce(initial_object, &(apply(__MODULE__, &1, [&2, patch_op, [opts]])))
+        |> patch!(remaining_ops, opts)
+      end
     end
   end
 
@@ -186,8 +208,9 @@ defmodule ExHal.Transcoder do
     value_converter = Keyword.get(options, :value_converter, IdentityConverter)
     extractor_name = :"extract_#{unique_string}_#{Enum.join(param_names,".")}"
     injector_name = :"inject_#{unique_string}_#{Enum.join(param_names,".")}"
+    patcher_name = :"patch_#{unique_string}_#{Enum.join(param_names,".")}"
 
-    {param_names, value_converter, extractor_name, injector_name, templated}
+    {param_names, value_converter, extractor_name, injector_name, patcher_name, templated}
   end
 
   @doc """
@@ -199,7 +222,7 @@ defmodule ExHal.Transcoder do
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the value to and from HAL
   """
   defmacro defproperty(name, options \\ []) do
-    {param_names, value_converter, extractor_name, injector_name, _} =
+    {param_names, value_converter, extractor_name, injector_name, patcher_name, _} =
       interpret_opts(options, name)
 
     quote do
@@ -216,6 +239,20 @@ defmodule ExHal.Transcoder do
         |> put_property(doc, unquote(name))
       end
       @injectors unquote(injector_name)
+
+      unquote do
+        unless(Keyword.get(options, :protected)) do
+          quote do
+            def unquote(patcher_name)(obj, %{"op" => "replace", "path" => "/#{unquote(name)}", "value" => value}, opts) do
+              value
+              |> decode_value(unquote(value_converter), opts)
+              |> put_param(obj, unquote(param_names))
+            end
+          end
+        end
+      end
+      def unquote(patcher_name)(obj, _patch_op, _opts), do: obj
+      @patchers unquote(patcher_name)
     end
   end
 
@@ -229,7 +266,7 @@ defmodule ExHal.Transcoder do
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
   """
   defmacro deflink(rel, options \\ []) do
-    {param_names, value_converter, extractor_name, injector_name, templated} =
+    {param_names, value_converter, extractor_name, injector_name, patcher_name, templated} =
       interpret_opts(options, rel)
 
     quote do
@@ -248,6 +285,20 @@ defmodule ExHal.Transcoder do
         |> put_link(doc, unquote(rel), unquote(templated))
       end
       @injectors unquote(injector_name)
+
+      unquote do
+        unless(Keyword.get(options, :protected)) do
+          quote do
+            def unquote(patcher_name)(obj, %{"op" => "replace", "path" => "/_links/#{unquote(rel)}", "value" => %{"href" => href}}, opts) do
+              href
+              |> decode_value(unquote(value_converter), opts)
+              |> put_param(obj, unquote(param_names))
+            end
+          end
+        end
+      end
+      def unquote(patcher_name)(obj, _patch_op, _opts), do: obj
+      @patchers unquote(patcher_name)
     end
   end
 
@@ -260,7 +311,7 @@ defmodule ExHal.Transcoder do
      - :value_converter - a `ExHal.Transcoder.ValueConverter` with which to convert the link target when en/decoding HAL
   """
   defmacro deflinks(rel, options \\ []) do
-    {param_names, value_converter, extractor_name, injector_name, _} =
+    {param_names, value_converter, extractor_name, injector_name, patcher_name, _} =
       interpret_opts(options, rel)
 
     quote do
@@ -277,6 +328,29 @@ defmodule ExHal.Transcoder do
         |> Enum.reduce(doc, &(put_link(&1, &2, unquote(rel))))
       end
       @injectors unquote(injector_name)
+
+      unquote do
+        unless(Keyword.get(options, :protected)) do
+          quote do
+            def unquote(patcher_name)(obj, %{"op" => "add", "path" => "/_links/#{unquote(rel)}/-", "value" => %{"href" => href}}, opts) do
+              update_in(obj, unquote(param_names),
+                fn
+                  (nil)   -> [ href ]
+                  (links) -> [ href | links]
+              end)
+            end
+            def unquote(patcher_name)(obj, %{"op" => "replace", "path" => "/_links/#{unquote(rel)}", "value" => links}, opts) do
+              hrefs = links
+              |> List.wrap
+              |> Enum.map(&Map.get(&1, "href"))
+
+              update_in(obj, unquote(param_names), fn(_) -> hrefs end)
+            end
+          end
+        end
+      end
+      def unquote(patcher_name)(obj, _patch_op, _opts), do: obj
+      @patchers unquote(patcher_name)
     end
   end
 

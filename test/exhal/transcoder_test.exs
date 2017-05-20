@@ -238,4 +238,191 @@ defmodule ExHal.TranscoderTest do
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
     assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
   end
+
+  test "patch existing object", %{doc: doc} do
+    defmodule MartiniTranscoder do
+      use ExHal.Transcoder
+
+      defproperty "baseIngredient", param: [:spirits, :liquor]
+    end
+
+    hal = Poison.encode!(%{"baseIngredient" => "gin"})
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    cocktail = MartiniTranscoder.decode!(doc)
+    assert %{spirits: %{liquor: "gin"}} == cocktail
+
+    json_patches = [
+      %{"op" => "replace", "path" => "/baseIngredient", "value" => "vodka"},
+    ]
+
+    bond_style = MartiniTranscoder.patch!(cocktail, json_patches)
+
+    assert %{spirits: %{liquor: "vodka"}} == bond_style
+  end
+
+  test "patch existing object with value converter", %{doc: doc} do
+    defmodule ShakenIsNotStirredConverter do
+      @behaviour ExHal.Transcoder.ValueConverter
+      def from_hal(bool), do: invert_bool(bool)
+      def to_hal(bool),   do: invert_bool(bool)
+      defp invert_bool(bool), do: !bool
+    end
+
+    defmodule MartiniTranscoder2 do
+      use ExHal.Transcoder
+
+      defproperty "stirred", param: [:shaken], value_converter: ShakenIsNotStirredConverter
+    end
+
+    hal = Poison.encode!(%{stirred: true})
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    cocktail = MartiniTranscoder2.decode!(doc)
+    assert %{shaken: false} == cocktail
+
+    json_patches = [
+      %{"op" => "replace", "path" => "/stirred", "value" => false},
+    ]
+
+    bond_style = MartiniTranscoder2.patch!(cocktail, json_patches)
+
+    assert %{shaken: true} == bond_style
+  end
+
+  test "try to patch a non-existing property does nothing" do
+    defmodule MartiniTranscoder3 do
+      use ExHal.Transcoder
+
+      defproperty "serving_dish"
+    end
+
+    cocktail = %{serving_dish: "mug"}
+
+    json_patches = [
+      %{"op" => "replace", "path" => "/firearm", "value" => "Walther PPK"},
+    ]
+
+    assert cocktail == MartiniTranscoder3.patch!(cocktail, json_patches)
+  end
+
+  test "multiple patch operations in one go" do
+    defmodule MartiniTranscoder4 do
+      use ExHal.Transcoder
+
+      defproperty "garnish_type"
+      defproperty "garnish_count"
+    end
+
+    cocktail = %{garnish_type: "radish", garnish_count: 1}
+
+    json_patches = [
+      %{"op" => "replace", "path" => "/garnish_type",  "value" => "olive"},
+      %{"op" => "replace", "path" => "/garnish_count", "value" => 2}
+    ]
+
+    bond_style = MartiniTranscoder4.patch!(cocktail, json_patches)
+
+    assert %{garnish_type: "olive", garnish_count: 2} == bond_style
+  end
+
+  test "protected items can't be changed" do
+    defmodule CompanyAutoTranscoder do
+      use ExHal.Transcoder
+
+      defproperty "make", protected: true
+      defproperty "model"
+    end
+
+    bonds_ride = %{make: "Aston Martin", model: "DB5"}
+
+    json_patches = [
+      %{"op" => "replace", "path" => "/make",  "value" => "Mopeds-R-Us"},
+      %{"op" => "replace", "path" => "/model", "value" => "Vanquish"}
+    ]
+
+    bonds_new_ride = CompanyAutoTranscoder.patch!(bonds_ride, json_patches)
+
+    assert %{make: "Aston Martin", model: "Vanquish"} == bonds_new_ride
+  end
+
+  test "replace (or add) a link" do
+    defmodule DestinationTranscoder do
+      use ExHal.Transcoder
+
+      deflink "missionLocation", param: :mission_locale
+      deflink "transportInfo",   param: :transport_details
+    end
+
+    links = %{"missionLocation" => %{href: "http://mi5.uk/l/moscow"}}
+    hal = Poison.encode!(%{_links: links})
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    mission = DestinationTranscoder.decode!(doc)
+
+    json_patches = [
+      %{"op" => "replace", "path" => "/_links/missionLocation", "value" => %{"href" => "http://mi5.uk/l/singapore"}},
+      %{"op" => "replace", "path" => "/_links/transportInfo",   "value" => %{"href" => "http://mi5.uk/travel/123456"}},
+      %{"op" => "replace", "path" => "/_links/notALinkOrProp",  "value" => %{"href" => "http://i_will_be_ignored"}},
+    ]
+
+    new_mission = DestinationTranscoder.patch!(mission, json_patches)
+
+    # location was changed
+    assert new_mission.mission_locale == "http://mi5.uk/l/singapore"
+
+    # travel info was added (replaced a declared, but not present, link)
+    assert new_mission.transport_details == "http://mi5.uk/travel/123456"
+
+    # an operation for on a non-declared path will be dropped
+    assert [] == new_mission |> Map.delete(:mission_locale) |> Map.delete(:transport_details) |> Map.keys
+  end
+
+  test "add a link to a deflinks" do
+    defmodule CoworkersTranscoder do
+      use ExHal.Transcoder
+
+      deflinks "workChums", param: :coworkers
+    end
+
+    hal = Poison.encode!(%{_links: %{"workChums" => [%{href: "http://mi5.uk/q"}, %{href: "http://mi5.uk/m"}]}})
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    workplace = CoworkersTranscoder.decode!(doc)
+
+    json_patches = [
+      %{"op" => "add", "path" => "/_links/workChums/-",  "value" => %{"href" => "http://mi5.uk/moneypenny"}}
+    ]
+
+    new_workplace = CoworkersTranscoder.patch!(workplace, json_patches)
+
+    assert Enum.member?(new_workplace.coworkers, "http://mi5.uk/q")
+    assert Enum.member?(new_workplace.coworkers, "http://mi5.uk/m")
+    assert Enum.member?(new_workplace.coworkers, "http://mi5.uk/moneypenny")
+  end
+
+  test "replace a deflinks array" do
+    defmodule CoworkersTranscoder2 do
+      use ExHal.Transcoder
+
+      deflinks "workChums", param: :coworkers
+    end
+
+    hal = Poison.encode!(%{_links: %{"workChums" => [%{href: "http://mi5.uk/q"}, %{href: "http://mi5.uk/m"}]}})
+    doc = ExHal.Document.parse!(ExHal.client, hal)
+    workplace = CoworkersTranscoder2.decode!(doc)
+
+    json_patches = [
+      %{"op" => "replace",
+        "path" => "/_links/workChums",
+        "value" => [
+          %{"href" => "http://spectre.org/u/jaws"},
+          %{"href" => "http://spectre.org/u/oddjob"}
+        ]
+       }
+    ]
+
+    new_workplace = CoworkersTranscoder2.patch!(workplace, json_patches)
+
+    refute Enum.member?(new_workplace.coworkers, "http://mi5.uk/q")
+    refute Enum.member?(new_workplace.coworkers, "http://mi5.uk/m")
+    assert Enum.member?(new_workplace.coworkers, "http://spectre.org/u/jaws")
+    assert Enum.member?(new_workplace.coworkers, "http://spectre.org/u/oddjob")
+  end
 end
