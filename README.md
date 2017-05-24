@@ -231,10 +231,59 @@ iex> PersonTranscoder.encode!(%{name: "Jane Doe",
 
 This can be used to, for example, build Ecto changesets via a `changeset/2` functions and to render HAL responses to HTTP requests.
 
+#### Patching
+
+ExHal.Transcoder also supports modifying objects with [JSON patch](https://tools.ietf.org/html/rfc6902).
+
+```elixir
+defmodule PetTranscoder do
+  use ExHal.Transcoder
+
+  defproperty "name"
+  defproperty "animalType",   param: species, protected: true
+  deflink     "favoriteToy",  param: :favorite_toy
+  deflinks    "friends"
+end
+```
+
+Create an object from the transcoder, then modify it
+
+```elixir
+iex> spot = PetTranscoder.decode!(doc)
+%{name: "Spot",
+  species: "dog",
+  favorite_toy: "http://a.co/56guxwO"
+  friends: ["https://petbook.com/u/fifi", "https://petbook.com/u/fido"]}
+
+iex> json_patches = [
+  %{"op" => "replace", "path" => "/name",       "value" => "Bowser"},
+  %{"op" => "replace", "path" => "/animalType", "value" => "dragon"},
+  %{"op" => "replace", "path" => "/_links/favoriteToy", "value" => %{"href" => "http://a.co/9cs2VQd"}},
+  %{"op" => "add",     "path" => "/_links/friends/-",   "value" => %{"href" => "https://doggo.biz/12345"}}]
+...
+
+iex> spot |> PetTranscoder.patch!(json_patches)
+%{name: "Bowser",
+  species: "dog",
+  favorite_toy: "http://a.co/9cs2VQd",
+  friends: ["https://petbook.com/u/fifi", "https://petbook.com/u/fido", "https://doggo.biz/12345"]}
+```
+
+`"replace"` operations are supported for properties and links.  `"add"` (append) is supported for link collections (`deflinks`) with `/propertyName/-` path syntax.  Any properties or links marked with `protected: true` cannot be changed via `patch!`.  Patch operations against properties or links not defined in the transcoder are ignored.
+
 #### Composing
 
-Transcoders are also chainable. For example, given a `ManagerTranscoder` the following would produce a Map that includes all person params and all the manager params: `PersonTranscoder.decode!(doc) |> ManagerTranscoder.decode!(doc)`. Similarly ``PersonTranscoder.encode!(model) |> ManagerTranscoder.encode!(module)` would produce an `ExHal.Document` that has all the properties and links defined in those transcoders.
+Transcoders are also chainable. For example, given a `ManagerTranscoder` the following would produce a Map that includes all person params and all the manager params: `PersonTranscoder.decode!(doc) |> ManagerTranscoder.decode!(doc)`. Similarly `PersonTranscoder.encode!(model) |> ManagerTranscoder.encode!(module)` would produce an `ExHal.Document` that has all the properties and links defined in those transcoders.
 
+Similarly, `patch!` operations can be chained:
+
+```elixir
+iex> employee = PersonTranscoder.decode!(doc) |> ManagerTranscoder.decode!(doc)
+...
+iex> json_patches = [%{"op" => "replace", "path" => "/mailingAddress", "value" => "..."}, ...]
+...
+iex> employee |> PersonTranscoder.patch!(json_patches) |> ManagerTranscoder.patch!(json_patches)
+```
 
 ### Assertions about HAL documents
 
