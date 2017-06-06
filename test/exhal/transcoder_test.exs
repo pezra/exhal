@@ -426,3 +426,91 @@ defmodule ExHal.TranscoderTest do
     assert Enum.member?(new_workplace.coworkers, "http://spectre.org/u/oddjob")
   end
 end
+
+defmodule ExHal.TranscoderEmptyLinksTest do
+  use ExUnit.Case
+
+  setup do
+    hal = """
+    {
+      "_links": {
+        "tag": []
+      }
+    }
+    """
+
+    {:ok, doc: ExHal.Document.parse!(ExHal.client, hal)}
+  end
+
+  test "trying to extract empty link array", %{doc: doc} do
+   defmodule MyOtherMultiLinkTranscoder do
+     use ExHal.Transcoder
+
+     deflinks "tag", param: :tag
+   end
+
+   assert %{} == MyOtherMultiLinkTranscoder.decode!(doc)
+
+   encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: []})
+   refute ExHal.Document.has_link?(encoded, "tag")
+  end
+end
+
+
+defmodule ExHal.TranscoderNullLinksTest do
+  use ExUnit.Case
+
+  setup do
+    hal = """
+    {
+      "_links": {
+        "tag": null
+      }
+    }
+    """
+
+    {:ok, doc: ExHal.Document.parse!(ExHal.client, hal)}
+  end
+
+  test "trying to extract empty link array", %{doc: doc} do
+   defmodule MyOtherMultiLinkTranscoder do
+     use ExHal.Transcoder
+
+     deflinks "tag", param: :tag
+   end
+
+   assert %{} == MyOtherMultiLinkTranscoder.decode!(doc)
+
+   encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: []})
+   refute ExHal.Document.has_link?(encoded, "tag")
+  end
+end
+
+defmodule ExHal.TranscoderAbsentLinksTest do
+  use ExUnit.Case
+
+  setup do
+    hal = """
+    {
+      "_links": {
+      },
+      "tag": []
+    }
+    """
+
+    {:ok, doc: ExHal.Document.parse!(ExHal.client, hal)}
+  end
+
+  test "trying to extract empty link array", %{doc: doc} do
+   defmodule MyOtherMultiLinkTranscoder do
+     use ExHal.Transcoder
+
+     deflinks "tag", param: :tag
+   end
+
+   assert %{} == MyOtherMultiLinkTranscoder.decode!(doc)
+
+   encoded = MyOtherMultiLinkTranscoder.encode!(%{tag: []})
+   refute ExHal.Document.has_link?(encoded, "tag")
+  end
+end
