@@ -11,11 +11,11 @@ defmodule ExHalTest do
     defp doc, do: Document.parse! ExHal.client, ~s({"one": 1})
 
     test "properties can be retrieved" do
-      assert {:ok, 1} = ExHal.fetch(doc, "one")
+      assert {:ok, 1} = ExHal.fetch(doc(), "one")
     end
 
     test "missing properties cannot be retrieved" do
-      assert :error = ExHal.fetch(doc, "two")
+      assert :error = ExHal.fetch(doc(), "two")
     end
   end
 
@@ -23,11 +23,11 @@ defmodule ExHalTest do
     use ExUnit.Case, async: true
 
     test "URL can be determined with self link" do
-      assert {:ok, "http://example.com"} = ExHal.url(doc_with_self_link)
+      assert {:ok, "http://example.com"} = ExHal.url(doc_with_self_link())
     end
 
     test "URL cannot be determined without self link" do
-      assert :error = ExHal.url(doc_sans_self_link)
+      assert :error = ExHal.url(doc_sans_self_link())
     end
 
 
@@ -45,16 +45,16 @@ defmodule ExHalTest do
 
     test "links can be fetched" do
       assert {:ok, [%ExHal.Link{href: "http://example.com", templated: false}] } =
-        ExHal.fetch(doc, "profile")
+        ExHal.fetch(doc(), "profile")
     end
 
     test "urls can be extracted from links" do
       assert {:ok, "http://example.com"} =
-        ExHal.link_target(doc, "profile")
+        ExHal.link_target(doc(), "profile")
     end
 
     test "missing links cannot be fetched" do
-      assert :error = ExHal.fetch(doc, "author")
+      assert :error = ExHal.fetch(doc(), "author")
     end
   end
 
@@ -71,11 +71,11 @@ defmodule ExHalTest do
       assert {:ok, [%ExHal.Link{target: %ExHal.Document{},
                                 href: "http://example.com",
                                 templated: false}] } =
-        ExHal.fetch(doc, "profile")
+        ExHal.fetch(doc(), "profile")
     end
 
     test "missing links cannot be fetched" do
-      assert :error = ExHal.fetch(doc, "author")
+      assert :error = ExHal.fetch(doc(), "author")
     end
   end
 
@@ -89,7 +89,7 @@ defmodule ExHalTest do
                                  }})
 
     test "links can be fetched" do
-      assert {:ok, [_, _] } = ExHal.fetch(doc, "item")
+      assert {:ok, [_, _] } = ExHal.fetch(doc(), "item")
     end
   end
 
@@ -104,12 +104,12 @@ defmodule ExHalTest do
 
     test "links can be fetched by decuried rels" do
       assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
-        ExHal.fetch(doc, "http://example.com/rels/foo")
+        ExHal.fetch(doc(), "http://example.com/rels/foo")
     end
 
     test "links can be fetched by curied rels" do
       assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
-        ExHal.fetch(doc, "app:foo")
+        ExHal.fetch(doc(), "app:foo")
     end
 
   end
@@ -124,7 +124,7 @@ defmodule ExHalTest do
 
     test "templated links can be fetched" do
       assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true}] } =
-        ExHal.fetch(doc, "search")
+        ExHal.fetch(doc(), "search")
     end
 
   end
@@ -141,7 +141,7 @@ defmodule ExHalTest do
 
     test ".follow_link w/ normal link" do
       stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
-        assert {:ok, (target = %Document{})} = ExHal.follow_link(doc, "single")
+        assert {:ok, (target = %Document{})} = ExHal.follow_link(doc(), "single")
 
         assert {:ok, "http://example.com/"} = ExHal.url(target)
       end
@@ -150,7 +150,7 @@ defmodule ExHalTest do
     test ".follow_link w/ templated link" do
       stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
        assert {:ok, (target = %Document{})} =
-          ExHal.follow_link(doc, "tmpl", tmpl_vars: [q: "test"])
+          ExHal.follow_link(doc(), "tmpl", tmpl_vars: [q: "test"])
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
@@ -159,24 +159,24 @@ defmodule ExHalTest do
     test ".follow_link w/ embedded link" do
       stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
         assert {:ok, (target = %Document{})} =
-          ExHal.follow_link(doc, "embedded")
+          ExHal.follow_link(doc(), "embedded")
 
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
     test ".follow_link w/ non-existent rel" do
-      assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc, "absent")
+      assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc(), "absent")
     end
 
     test ".follow_link w/ multiple links with strict true fails" do
-      assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc, "multiple", strict: true)
+      assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc(), "multiple", strict: true)
     end
 
     test ".follow_link w/ multiple links" do
       stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str("") do
         assert {:ok, (target = %Document{})} =
-          ExHal.follow_link(doc, "multiple")
+          ExHal.follow_link(doc(), "multiple")
 
         assert {:ok, _} = ExHal.url(target)
       end
@@ -185,7 +185,7 @@ defmodule ExHalTest do
 
     test ".follow_links w/ single link" do
       stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
-        assert [{:ok, (target = %Document{})}] = ExHal.follow_links(doc, "single")
+        assert [{:ok, (target = %Document{})}] = ExHal.follow_links(doc(), "single")
 
         assert {:ok, "http://example.com/"} = ExHal.url(target)
 
@@ -195,7 +195,7 @@ defmodule ExHalTest do
     test ".follow_links w/ templated link" do
       stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
        assert [{:ok, (target = %Document{})}] =
-          ExHal.follow_links(doc, "tmpl", tmpl_vars: [q: "test"])
+          ExHal.follow_links(doc(), "tmpl", tmpl_vars: [q: "test"])
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
       end
@@ -204,14 +204,14 @@ defmodule ExHalTest do
     test ".follow_links w/ embedded link" do
       stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
         assert [{:ok, (target = %Document{})}] =
-          ExHal.follow_links(doc, "embedded")
+          ExHal.follow_links(doc(), "embedded")
 
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
       end
     end
 
     test ".follow_links w/ non-existent rel" do
-      assert [{:error, %ExHal.Error{}}] = ExHal.follow_links(doc, "absent")
+      assert [{:error, %ExHal.Error{}}] = ExHal.follow_links(doc(), "absent")
     end
 
     test ".follow_links w/ multiple links" do
@@ -222,7 +222,7 @@ defmodule ExHalTest do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       stub_request "post", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
-        assert {:ok, (target = %Document{})} = ExHal.post(doc, "single", new_thing_hal)
+        assert {:ok, (target = %Document{})} = ExHal.post(doc(), "single", new_thing_hal)
 
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end
@@ -232,7 +232,7 @@ defmodule ExHalTest do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       stub_request "patch", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
-        assert {:ok, (target = %Document{})} = ExHal.patch(doc, "single", new_thing_hal)
+        assert {:ok, (target = %Document{})} = ExHal.patch(doc(), "single", new_thing_hal)
 
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end

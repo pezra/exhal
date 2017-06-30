@@ -12,8 +12,8 @@ defmodule ExHal.Mixfile do
                          "coveralls.detail": :test,
                          "coveralls.post": :test],
 
-     deps: deps,
-     package: package]
+     deps: deps(),
+     package: package()]
   end
 
   def application do
@@ -36,7 +36,7 @@ defmodule ExHal.Mixfile do
   end
 
   defp package do
-    [ files: git_files -- excluded_files,
+    [ files: git_files() -- excluded_files(),
       licenses: ["http://opensource.org/licenses/MIT"],
       maintainers: ["Peter Williams"],
       links: %{"homepage": "http://github.com/pezra/exhal"} ]

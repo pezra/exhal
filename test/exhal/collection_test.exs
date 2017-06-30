@@ -87,13 +87,13 @@ defmodule ExHal.CollectionTest do
   # background
 
   setup do
-    {:ok, [non_collection_doc:           non_collection_doc,
-           single_page_collection_doc:   single_page_collection_doc,
-           multi_page_collection_doc:    multi_page_collection_doc,
-           empty_collection_doc:         empty_collection_doc,
-           truly_empty_collection_doc:   truly_empty_collection_doc,
+    {:ok, [non_collection_doc:           non_collection_doc(),
+           single_page_collection_doc:   single_page_collection_doc(),
+           multi_page_collection_doc:    multi_page_collection_doc(),
+           empty_collection_doc:         empty_collection_doc(),
+           truly_empty_collection_doc:   truly_empty_collection_doc(),
            last_page_collection_url:     "http://example.com/?p=2",
-           last_page_collection_hal_str: last_page_collection_hal_str]}
+           last_page_collection_hal_str: last_page_collection_hal_str()]}
   end
 
   defp non_collection_doc do

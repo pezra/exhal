@@ -78,7 +78,7 @@ defmodule ExHal.NavigationTest do
   # Background
 
   setup do
-    {:ok, doc: doc}
+    {:ok, doc: doc()}
   end
 
   defp doc do
