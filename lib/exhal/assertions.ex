@@ -40,7 +40,7 @@ defmodule ExHal.Assertions do
     """
 
   import ExUnit.Assertions
-  alias ExHal.{Document,Navigation,Link,Collection}
+  alias ExHal.{Document,Link,Collection}
 
   @doc"""
     Returns a stream representation of the document.

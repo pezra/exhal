@@ -85,10 +85,19 @@ defmodule ExHal.Link do
     if embedded?(link) do
       Document.to_json_hash(link.target)
     else
-      hash = %{"href" => link.href}
-      if !!link.templated, do: hash = Map.merge(hash, %{"templated" => true})
-      if !!link.name, do: hash = Map.merge(hash, %{"name" => link.name})
-      hash
+      %{"href" => link.href}
+      |> add_templated(link)
+      |> add_name(link)
     end
   end
+
+  defp add_templated(json_map, %{templated: true}) do
+    Map.merge(json_map, %{"templated" => true})
+  end
+  defp add_templated(json_map, _), do: json_map
+
+  defp add_name(json_map, %{name: name}) when is_binary(name) do
+    Map.merge(json_map, %{"name" => name})
+  end
+  defp add_name(json_map, _), do: json_map
 end
