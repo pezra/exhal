@@ -55,16 +55,16 @@ defmodule ExHal.LinkTest do
   end
 
   test ".target_url w/ untemplated link w/ vars" do
-    assert {:ok, "http://example.com/"} = Link.target_url(normal_link,
+    assert {:ok, "http://example.com/"} = Link.target_url(normal_link(),
                                                           %{q: "hello"})
   end
 
   test ".target_url w/ untemplated link w/o vars" do
-    assert {:ok, "http://example.com/"} = Link.target_url(normal_link)
+    assert {:ok, "http://example.com/"} = Link.target_url(normal_link())
   end
 
   test ".target_url w/ templated link" do
-    assert {:ok, "http://example.com/?q=hello"} = Link.target_url(templated_link,
+    assert {:ok, "http://example.com/?q=hello"} = Link.target_url(templated_link(),
                                                                   %{q: "hello"})
   end
 

@@ -19,6 +19,7 @@ defmodule ExHal.Document do
   def parse(hal_str, client) when is_binary(hal_str) do
     case Poison.Parser.parse(hal_str) do
       {:ok, parsed} -> {:ok, from_parsed_hal(client, parsed)}
+      {:error, reason, _} -> {:error, reason}
       r -> r
     end
   end

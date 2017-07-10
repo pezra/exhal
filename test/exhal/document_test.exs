@@ -21,11 +21,11 @@ defmodule ExHal.DocumentTest do
     use ExUnit.Case, async: true
 
     test "URL can be determined with self link" do
-      assert {:ok, "http://example.com"} = Document.url(doc_with_self_link)
+      assert {:ok, "http://example.com"} = Document.url(doc_with_self_link())
     end
 
     test "URL cannot be determined without self link" do
-      assert :error = Document.url(doc_sans_self_link)
+      assert :error = Document.url(doc_sans_self_link())
     end
 
 
@@ -47,8 +47,8 @@ defmodule ExHal.DocumentTest do
                        %{"href" => "http://example.com/my-foo"},
                      ]}}
 
-    doc = Document.from_parsed_hal(client, parsed_hal)
-    assert ^parsed_hal = Document.to_json_hash(doc)
+    exhal_doc = Document.from_parsed_hal(client, parsed_hal)
+    assert ^parsed_hal = Document.to_json_hash(exhal_doc)
   end
 
   test "parsing with null links", %{client: client} do
@@ -58,8 +58,8 @@ defmodule ExHal.DocumentTest do
                      "foo" => %{"href" => nil}
                     }}
 
-    doc = Document.from_parsed_hal(client, parsed_hal)
-    refute doc |> Document.has_link?("foo")
+    exhal_doc = Document.from_parsed_hal(client, parsed_hal)
+    refute exhal_doc |> Document.has_link?("foo")
   end
 
   defmodule DocWithProperties do
@@ -68,47 +68,47 @@ defmodule ExHal.DocumentTest do
     defp doc, do: Document.parse! ExHal.client, ~s({"one": 1})
 
     test "properties can be fetched" do
-      assert {:ok, 1} == Document.fetch(doc, "one")
+      assert {:ok, 1} == Document.fetch(doc(), "one")
     end
 
-    test "get(doc, real_prop)" do
-      assert 1 == Document.get(doc, "one")
+    test "get(doc(), real_prop)" do
+      assert 1 == Document.get(doc(), "one")
     end
 
-    test "get_property(doc, real_prop)" do
-      assert 1 == Document.get_property(doc, "one")
+    test "get_property(doc(), real_prop)" do
+      assert 1 == Document.get_property(doc(), "one")
     end
 
     test "missing properties cannot be fetched" do
-      assert :error == Document.fetch(doc, "two")
+      assert :error == Document.fetch(doc(), "two")
     end
 
-    test "get(doc, missing_prop)" do
-      assert nil == Document.get(doc, "two")
+    test "get(doc(), missing_prop)" do
+      assert nil == Document.get(doc(), "two")
     end
 
-    test "get(doc, missing_prop, default)" do
-      assert :hello == Document.get(doc, "two", :hello)
+    test "get(doc(), missing_prop, default)" do
+      assert :hello == Document.get(doc(), "two", :hello)
     end
 
-    test "get_property(doc, missing_prop)" do
-      assert nil == Document.get_property(doc, "two")
+    test "get_property(doc(), missing_prop)" do
+      assert nil == Document.get_property(doc(), "two")
     end
 
-    test "get_property(doc, missing_prop, default)" do
-      assert :hello == Document.get_property(doc, "two", :hello)
+    test "get_property(doc(), missing_prop, default)" do
+      assert :hello == Document.get_property(doc(), "two", :hello)
     end
 
     test "can be rendered" do
-      assert is_binary(Document.render!(doc))
-      assert String.contains?(Document.render!(doc), ~s("one":))
-      assert doc == Document.parse!(Document.render!(doc))
+      assert is_binary(Document.render!(doc()))
+      assert String.contains?(Document.render!(doc()), ~s("one":))
+      assert doc() == Document.parse!(Document.render!(doc()))
     end
 
     test "Poison.Encoder.encode(doc)" do
-      assert is_binary(Poison.encode!(doc))
-      assert String.contains?(Poison.encode!(doc), ~s("one":))
-      assert doc == Document.parse!(Poison.encode!(doc))
+      assert is_binary(Poison.encode!(doc()))
+      assert String.contains?(Poison.encode!(doc()), ~s("one":))
+      assert doc() == Document.parse!(Poison.encode!(doc()))
     end
 
   end
@@ -123,29 +123,29 @@ defmodule ExHal.DocumentTest do
 
     test "links can be fetched" do
       assert {:ok, [%ExHal.Link{href: "http://example.com", templated: false}] } =
-        Document.fetch(doc, "profile")
+        Document.fetch(doc(), "profile")
     end
 
     test "missing links cannot be fetched" do
-      assert :error = Document.fetch(doc, "author")
+      assert :error = Document.fetch(doc(), "author")
     end
 
-    test "get_links(doc, present_rel)" do
-      assert [%ExHal.Link{href: "http://example.com", templated: false}] = Document.get_links(doc, "profile")
+    test "get_links(doc(), present_rel)" do
+      assert [%ExHal.Link{href: "http://example.com", templated: false}] = Document.get_links(doc(), "profile")
     end
 
-    test "get_links(doc, absent_rel)" do
-      assert [] = Document.get_links(doc, "absent_rel")
+    test "get_links(doc(), absent_rel)" do
+      assert [] = Document.get_links(doc(), "absent_rel")
     end
 
-    test "get_links(doc, absent_rel, :missing)" do
-      assert :missing = Document.get_links(doc, "absent_rel", :missing)
+    test "get_links(doc(), absent_rel, :missing)" do
+      assert :missing = Document.get_links(doc(), "absent_rel", :missing)
     end
 
     test "can be rendered" do
-      assert is_binary(Document.render!(doc))
-      assert String.contains?(Document.render!(doc), ~s("_links":))
-      assert doc == Document.parse!(Document.render!(doc))
+      assert is_binary(Document.render!(doc()))
+      assert String.contains?(Document.render!(doc()), ~s("_links":))
+      assert doc() == Document.parse!(Document.render!(doc()))
     end
   end
 
@@ -162,17 +162,17 @@ defmodule ExHal.DocumentTest do
       assert {:ok, [%ExHal.Link{target: %ExHal.Document{},
                                 href: "http://example.com",
                                 templated: false}] } =
-        Document.fetch(doc, "profile")
+        Document.fetch(doc(), "profile")
     end
 
     test "missing links cannot be fetched" do
-      assert :error = Document.fetch(doc, "author")
+      assert :error = Document.fetch(doc(), "author")
     end
 
     test "can be rendered" do
-      assert is_binary(Document.render!(doc))
-      assert String.contains?(Document.render!(doc), ~s("_embedded":))
-      assert doc == Document.parse!(Document.render!(doc))
+      assert is_binary(Document.render!(doc()))
+      assert String.contains?(Document.render!(doc()), ~s("_embedded":))
+      assert doc() == Document.parse!(Document.render!(doc()))
     end
   end
 
@@ -186,7 +186,7 @@ defmodule ExHal.DocumentTest do
                                  }})
 
     test "links can be fetched" do
-      assert {:ok, [_, _] } = Document.fetch(doc, "item")
+      assert {:ok, [_, _] } = Document.fetch(doc(), "item")
     end
   end
 
@@ -201,12 +201,12 @@ defmodule ExHal.DocumentTest do
 
     test "links can be fetched by decuried rels" do
       assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
-        Document.fetch(doc, "http://example.com/rels/foo")
+        Document.fetch(doc(), "http://example.com/rels/foo")
     end
 
     test "links can be fetched by curied rels" do
       assert {:ok, [%ExHal.Link{href: "http://example.com"}] } =
-        Document.fetch(doc, "app:foo")
+        Document.fetch(doc(), "app:foo")
     end
 
   end
@@ -221,7 +221,7 @@ defmodule ExHal.DocumentTest do
 
     test "templated links can be fetched" do
       assert {:ok, [%ExHal.Link{href: "http://example.com/{?q}", templated: true}] } =
-        Document.fetch(doc, "search")
+        Document.fetch(doc(), "search")
     end
 
   end
