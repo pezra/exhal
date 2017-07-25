@@ -2,11 +2,12 @@ defmodule ExHal.Navigation do
   alias ExHal.Link
   alias ExHal.Error
   alias ExHal.Client
+  alias ExHal.ResponseHeader
 
   @doc """
   Follows a link in a HAL document.
 
-  Returns `{:ok,    %ExHal.Document{...}}` if response is successful;
+  Returns `{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}` if response is successful;
   `{:error, %ExHal.Error{...}}` if not
   """
   def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, strict: false, headers: []}) do
@@ -24,7 +25,7 @@ defmodule ExHal.Navigation do
   @doc """
   Follows all links of a particular rel in a HAL document.
 
-  Returns `[{:ok, %ExHal.Document{...}}, {:error, %ExHal.Error{...}, ...]`
+  Returns `[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:error, %ExHal.Error{...}, ...]`
   """
   def follow_links(a_doc, name, opts) when is_map(opts) or is_list(opts) do
     follow_links(a_doc, name, fn _name -> [{:error, %Error{reason: "no such link: #{name}"}}] end, opts)
@@ -48,7 +49,7 @@ defmodule ExHal.Navigation do
   @doc """
   Posts data to the named link in a HAL document.
 
-  Returns `{:ok, %ExHal.Document{...}}` if response is successful and body is HAL;
+  Returns `{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}` if response is successful and body is HAL;
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def post(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
@@ -64,7 +65,7 @@ defmodule ExHal.Navigation do
   @doc """
   PUTs data to the named link in a HAL document.
 
-  Returns `{:ok, %ExHal.Document{...}}` if response is successful and body is HAL;
+  Returns `{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}` if response is successful and body is HAL;
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def put(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
@@ -80,7 +81,7 @@ defmodule ExHal.Navigation do
   @doc """
   PATCHs data to the named link in a HAL document.
 
-  Returns `{:ok, %ExHal.Document{...}}` if response is successful and body is HAL;
+  Returns `{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}` if response is successful and body is HAL;
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def patch(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
@@ -172,7 +173,7 @@ defmodule ExHal.Navigation do
   defp _follow_link(client, link, tmpl_vars, opts) do
     cond do
       Link.embedded?(link) ->
-        {:ok, link.target}
+        {:ok, link.target, %ResponseHeader{status_code: 200}}
       :else ->
         Client.get(client, Link.target_url!(link, tmpl_vars), opts)
     end

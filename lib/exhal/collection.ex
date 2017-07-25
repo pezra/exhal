@@ -4,6 +4,7 @@ defmodule ExHal.Collection do
     """
 
   alias ExHal.Document
+  alias ExHal.ResponseHeader
 
   @doc """
     Returns a stream that iterate over the collection represented by `a_doc`.
@@ -14,8 +15,8 @@ defmodule ExHal.Collection do
       fn follow_result ->
         case follow_result do
           {:error, _} -> {:halt, follow_result}
-          {:ok, page}  -> {ExHal.follow_links(page, "item", fn _ -> [] end),
-                           ExHal.follow_link(page, "next", pick_volunteer: true)}
+          {:ok, page} -> page |> expand_page
+          {:ok, page, %ResponseHeader{}} -> page |> expand_page
         end
       end,
       fn _ -> nil end
@@ -36,5 +37,10 @@ defmodule ExHal.Collection do
   """
   def to_json_hash(enum) do
     %{ "_embedded" => %{"item" => Enum.map(enum, &(Document.to_json_hash(&1)))} }
+  end
+
+  defp expand_page(page) do
+    {ExHal.follow_links(page, "item", fn _ -> [] end),
+      ExHal.follow_link(page, "next", pick_volunteer: true)}
   end
 end

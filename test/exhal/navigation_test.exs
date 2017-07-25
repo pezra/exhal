@@ -4,19 +4,19 @@ defmodule ExHal.NavigationTest do
   use ExUnit.Case, async: false
   use RequestStubbing
 
-  alias ExHal.{Navigation,Document,Error}
+  alias ExHal.{Navigation,Document,Error,ResponseHeader}
 
   test ".follow_link", %{doc: doc} do
     thing_hal = hal_str("http://example.com/thing")
 
     stub_request "get", url: "http://example.com/", resp_body: thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Navigation.follow_link(doc, "single")
 
       assert {:ok, "http://example.com/thing"} = ExHal.url(target)
     end
 
-    assert {:ok, (target = %Document{})} =
+    assert {:ok, (target = %Document{}), %ResponseHeader{}} =
       Navigation.follow_link(doc, "embedded")
 
     assert {:ok, "http://example.com/e"} = ExHal.url(target)
@@ -28,7 +28,7 @@ defmodule ExHal.NavigationTest do
     stub_request "post", url: "http://example.com/",
                          req_body: "post body",
                          resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Navigation.post(doc, "single", "post body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
@@ -41,7 +41,7 @@ defmodule ExHal.NavigationTest do
     stub_request "put", url: "http://example.com/",
                         req_body: "put body",
                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Navigation.put(doc, "single", "put body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
@@ -54,7 +54,7 @@ defmodule ExHal.NavigationTest do
     stub_request "patch", url: "http://example.com/",
                         req_body: "patch body",
                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Navigation.patch(doc, "single", "patch body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)

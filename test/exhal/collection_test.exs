@@ -6,6 +6,7 @@ defmodule ExHal.CollectionTest do
 
   alias ExHal.Document
   alias ExHal.Collection
+  alias ExHal.ResponseHeader
 
   test ".to_json_hash" do
     parsed_hal = %{
@@ -24,7 +25,7 @@ defmodule ExHal.CollectionTest do
       "_links" => %{ "self" => %{"href" => "http://example.com/my-name"}}}
 
     doc = Document.from_parsed_hal(parsed_hal)
-    {:ok, rendered_doc} =
+    {:ok, rendered_doc, %ResponseHeader{}} =
       Collection.render!([doc])
       |> Document.parse!
       |> Collection.to_stream
@@ -54,7 +55,7 @@ defmodule ExHal.CollectionTest do
   } do
     subject = Collection.to_stream(single_page_collection_doc)
     assert 2 == Enum.count(subject)
-    assert Enum.all? subject, fn x -> {:ok, _} = x end
+    assert Enum.all? subject, fn x -> {:ok, _, %ResponseHeader{}} = x end
     assert Enum.any? subject, has_doc_with_name("first")
     assert Enum.any? subject, has_doc_with_name("second")
   end
@@ -68,7 +69,7 @@ defmodule ExHal.CollectionTest do
 
     stub_request "get", url: last_page_collection_url, resp_body: last_page_collection_hal_str do
       assert 3 == Enum.count(subject)
-      assert Enum.all? subject, fn x -> {:ok, _} = x end
+      assert Enum.all? subject, fn x -> {:ok, _, %ResponseHeader{}} = x end
       assert Enum.any? subject, has_doc_with_name("first")
       assert Enum.any? subject, has_doc_with_name("second")
       assert Enum.any? subject, has_doc_with_name("last")
@@ -152,7 +153,7 @@ defmodule ExHal.CollectionTest do
   defp has_doc_with_name(expected) do
     fn item ->
       case item do
-        {:ok, doc} -> ExHal.get_property_lazy(doc, "name", fn -> :missing end) == expected
+        {:ok, doc, %ResponseHeader{}} -> ExHal.get_property_lazy(doc, "name", fn -> :missing end) == expected
         _ -> false
       end
     end
