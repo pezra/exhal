@@ -15,7 +15,7 @@ defmodule ExHal do
     ```
 
     ```elixir
-    iex> {:ok, doc} = ExHal.client
+    iex> {:ok, doc, response_header} = ExHal.client
     ...> |> ExHal.Client.add_headers("User-Agent": "MyClient/1.0")
     ...> |> ExHal.Client.get("http://example.com/hal")
     %ExHal.Document{...}
@@ -25,13 +25,13 @@ defmodule ExHal do
 
     ```exlixir
     iex> ExHal.follow_link(doc, "profile")
-    {:ok, %ExHal.Document{...}}
+    {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
 
     iex> ExHal.follow_link(doc, "self")
-    {:ok, %ExHal.Document{...}}
+    {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
 
     iex> ExHal.follow_links(doc, "profile")
-    [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+    [{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}]
     ```
 
     We can specify headers for each request in addition to the headers specified in the client.
@@ -39,7 +39,7 @@ defmodule ExHal do
     ```elixir
     iex> ExHal.follow_links(doc, "profile",
                             headers: ["Accept": "application/vnd.custom.json+type"])
-    [{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+    [{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}]
 
     ```
 
@@ -94,7 +94,7 @@ defmodule ExHal do
 
     iex> Stream.map(collection, fn follow_results ->
     ...>   case follow_results do
-    ...>     {:ok, a_doc} -> ExHal.url(a_doc)}
+    ...>     {:ok, a_doc, %ResponseHeader{}} -> ExHal.url(a_doc)}
     ...>     {:error, _}  -> :error
     ...>   end
     ...> end )

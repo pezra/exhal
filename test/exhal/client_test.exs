@@ -26,15 +26,13 @@ defmodule ExHal.ClientHttpRequestTest do
   use ExUnit.Case, async: false
   use RequestStubbing
 
-  alias ExHal.Client
-  alias ExHal.Document
-  alias ExHal.NonHalResponse
+  alias ExHal.{Client, Document, NonHalResponse, ResponseHeader}
 
   test ".get w/ normal link", %{client: client} do
     thing_hal = hal_str("http://example.com/thing")
 
     stub_request "get", url: "http://example.com/", resp_body: thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Client.get(client, "http://example.com/")
 
       assert {:ok, "http://example.com/thing"} = ExHal.url(target)
@@ -47,7 +45,7 @@ defmodule ExHal.ClientHttpRequestTest do
     stub_request "post", url: "http://example.com/",
                          req_body: new_thing_hal,
                          resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Client.post(client, "http://example.com/", new_thing_hal)
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
@@ -58,7 +56,7 @@ defmodule ExHal.ClientHttpRequestTest do
     stub_request "post", url: "http://example.com/",
                          req_body: "post body",
                          resp_body: "" do
-      assert {:ok, %NonHalResponse{}} =
+      assert {:ok, %NonHalResponse{}, %ResponseHeader{status_code: 200}} =
         Client.post(client, "http://example.com/", "post body")
     end
   end
@@ -69,7 +67,7 @@ defmodule ExHal.ClientHttpRequestTest do
     stub_request "put", url: "http://example.com/",
                         req_body: "the request body",
                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Client.put(client, "http://example.com/", "the request body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
@@ -82,7 +80,7 @@ defmodule ExHal.ClientHttpRequestTest do
     stub_request "patch", url: "http://example.com/",
                         req_body: "the request body",
                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{})} =
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
         Client.patch(client, "http://example.com/", "the request body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)

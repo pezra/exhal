@@ -4,6 +4,7 @@ defmodule ExHalTest do
   use ExUnit.Case, async: true
 
   alias ExHal.Document
+  alias ExHal.ResponseHeader
 
   defmodule DocWithProperties do
     use ExUnit.Case, async: true
@@ -141,7 +142,7 @@ defmodule ExHalTest do
 
     test ".follow_link w/ normal link" do
       stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
-        assert {:ok, (target = %Document{})} = ExHal.follow_link(doc(), "single")
+        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.follow_link(doc(), "single")
 
         assert {:ok, "http://example.com/"} = ExHal.url(target)
       end
@@ -149,7 +150,7 @@ defmodule ExHalTest do
 
     test ".follow_link w/ templated link" do
       stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
-       assert {:ok, (target = %Document{})} =
+       assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
           ExHal.follow_link(doc(), "tmpl", tmpl_vars: [q: "test"])
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
@@ -158,7 +159,7 @@ defmodule ExHalTest do
 
     test ".follow_link w/ embedded link" do
       stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
-        assert {:ok, (target = %Document{})} =
+        assert {:ok, (target = %Document{}), %ResponseHeader{}} =
           ExHal.follow_link(doc(), "embedded")
 
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
@@ -175,7 +176,7 @@ defmodule ExHalTest do
 
     test ".follow_link w/ multiple links" do
       stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str("") do
-        assert {:ok, (target = %Document{})} =
+        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
           ExHal.follow_link(doc(), "multiple")
 
         assert {:ok, _} = ExHal.url(target)
@@ -185,7 +186,7 @@ defmodule ExHalTest do
 
     test ".follow_links w/ single link" do
       stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
-        assert [{:ok, (target = %Document{})}] = ExHal.follow_links(doc(), "single")
+        assert [{:ok, (target = %Document{}), %ResponseHeader{status_code: 200}}] = ExHal.follow_links(doc(), "single")
 
         assert {:ok, "http://example.com/"} = ExHal.url(target)
 
@@ -194,7 +195,7 @@ defmodule ExHalTest do
 
     test ".follow_links w/ templated link" do
       stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
-       assert [{:ok, (target = %Document{})}] =
+       assert [{:ok, (target = %Document{}), %ResponseHeader{status_code: 200}}] =
           ExHal.follow_links(doc(), "tmpl", tmpl_vars: [q: "test"])
 
         assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
@@ -203,7 +204,7 @@ defmodule ExHalTest do
 
     test ".follow_links w/ embedded link" do
       stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
-        assert [{:ok, (target = %Document{})}] =
+        assert [{:ok, (target = %Document{}), %ResponseHeader{}}] =
           ExHal.follow_links(doc(), "embedded")
 
         assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
@@ -222,7 +223,7 @@ defmodule ExHalTest do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       stub_request "post", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
-        assert {:ok, (target = %Document{})} = ExHal.post(doc(), "single", new_thing_hal)
+        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.post(doc(), "single", new_thing_hal)
 
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end
@@ -232,7 +233,7 @@ defmodule ExHalTest do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       stub_request "patch", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
-        assert {:ok, (target = %Document{})} = ExHal.patch(doc(), "single", new_thing_hal)
+        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.patch(doc(), "single", new_thing_hal)
 
         assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
       end

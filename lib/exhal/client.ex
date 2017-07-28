@@ -81,17 +81,17 @@ defmodule ExHal.Client do
     case http_resp do
       {:error, err} -> {:error, %ExHal.Error{reason: err.reason} }
 
-      {:ok, resp} -> extract_doc(client, resp)
+      {:ok, resp} -> interpret_response(client, resp)
     end
   end
 
-  defp extract_doc(client, resp) do
+  defp interpret_response(client, resp) do
     doc = extract_body_as_doc(client, resp)
     code = resp.status_code
 
     cond do
-      Enum.member?(200..299, code) -> {:ok, doc}
-      true ->  {:error, doc}
+      Enum.member?(200..299, code) -> {:ok, doc, %ExHal.ResponseHeader{status_code: code}}
+      true ->  {:error, doc, %ExHal.ResponseHeader{status_code: code}}
     end
   end
 

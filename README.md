@@ -23,7 +23,7 @@ Consider a resource `http://example.com/hal` whose HAL representation looks like
 ```
 
 ```elixir
-iex> {:ok, doc} = ExHal.client
+iex> {:ok, doc, response_header} = ExHal.client
 ...> |> ExHal.Client.add_headers("User-Agent": "MyClient/1.0")
 ...> |> ExHal.Client.get("http://example.com/hal")
 %ExHal.Document{...}
@@ -33,15 +33,15 @@ iex> {:ok, doc} = ExHal.client
 
 Now we have an entry point to the API. From there we can follow links to navigate around.
 
-```exlixir
+```elixir
 iex> ExHal.follow_link(doc, "profile")
-{:ok, %ExHal.Document{...}}
+{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
 
 iex> ExHal.follow_link(doc, "self")
-{:ok, %ExHal.Document{...}}
+{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
 
 iex> ExHal.follow_links(doc, "profile")
-[{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}]
 ```
 
 We can specify headers for each request in addition to the headers specified in the client.
@@ -49,7 +49,7 @@ We can specify headers for each request in addition to the headers specified in 
 ```elixir
 iex> ExHal.follow_links(doc, "profile",
                         headers: ["Accept": "application/vnd.custom.json+type"])
-[{:ok, %ExHal.Document{...}}, {:ok, %ExHal.Document{...}}]
+[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}]
 
 ```
 
@@ -87,7 +87,7 @@ name_change = """
 
 # make a request that returns a HAL response
 iex> ExHal.put(doc, "self", name_change)
-{:ok, %ExHal.Document{...}}
+{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
 
 # make a request that just returns a response without a body
 iex> {:ok, resp} = ExHal.post(doc, "add-child", "{\"name\": \"child\"}")
@@ -132,7 +132,8 @@ iex> collection = ExHal.client
 
 iex> Stream.map(collection, fn follow_results ->
 ...>   case follow_results do
-...>     {:ok, a_doc} -> ExHal.url(a_doc)}
+...>     {:ok, a_doc, %ResponseHeader{}} -> ExHal.url(a_doc)
+...>     {:ok, a_doc} -> ExHal.url(a_doc)
 ...>     {:error, _}  -> :error
 ...>   end
 ...> end )
@@ -331,5 +332,5 @@ Installation
 Add the following to your project `:deps` list:
 
 ```elixir
-{:exhal, "~> 4.10"}
+{:exhal, "~> 6.0"}
 ```
