@@ -332,5 +332,12 @@ Installation
 Add the following to your project `:deps` list:
 
 ```elixir
-{:exhal, "~> 6.0"}
+{:exhal, "~> 7.0"}
 ```
+
+Upgrading
+----
+
+### From 6.0 to 7.0
+  * All HTTP requesting functions return a three-tuple in 7.0 (rather the two-tuple in versions before that). Code that invokes those will need to handle the change in cardinatlity.
+
