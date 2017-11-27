@@ -4,7 +4,7 @@ defmodule ExHal.Mixfile do
   def project do
     [app: :exhal,
      description: "Use HAL APIs with ease",
-     version: "7.0.0",
+     version: "7.0.1",
      elixir: "~> 1.3",
 
      test_coverage: [tool: ExCoveralls],
