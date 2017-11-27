@@ -2,6 +2,7 @@ Code.require_file "../support/request_stubbing.exs", __DIR__
 
 defmodule ExHal.ClientTest do
   use ExUnit.Case, async: true
+  doctest ExHal.Client
 
   alias ExHal.Client
 

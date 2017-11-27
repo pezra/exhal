@@ -109,7 +109,7 @@ defmodule ExHal do
     Returns a default client
     """
   def client do
-    %Client{}
+    Client.new()
   end
 
   defdelegate follow_link(a_doc, name), to: Navigation

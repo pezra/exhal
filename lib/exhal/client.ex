@@ -1,13 +1,50 @@
 defmodule ExHal.Client do
+  @moduledoc """
+  Behavior related to making HTTP requests.
+
+  ## Examples
+
+      iex> ExHal.Client.new()
+      %ExHal.Client{}
+  """
 
   require Logger
   alias ExHal.Document
   alias ExHal.NonHalResponse
 
+  @logger Application.get_env(:exhal, :logger, Logger)
+
+  @typedoc """
+  Represents a client configuration/connection. Create with `new` function.
+  """
+  @opaque t :: %__MODULE__{headers: Keyword.t, opts: [follow_redirect: boolean()]}
   defstruct headers: [], opts: [follow_redirect: true]
 
+  @doc """
+  Returns a new client.
+  """
+  @spec new(Keyword.t, Keyword.t) :: __MODULE__.t
+  def new(headers, follow_redirect: follow) do
+    %__MODULE__{headers: headers, opts: [follow_redirect: follow]}
+  end
+
+  @spec new(Keyword.t) :: __MODULE__.t
+  def new(headers) do
+    new(headers, follow_redirect: true)
+  end
+
+  @spec new() :: __MODULE__.t
+  def new() do
+    new([], follow_redirect: true)
+  end
+
+  @doc """
+  Returns client that will include the specified headers in any request
+   made with it.
+  """
+  @spec add_headers(__MODULE__.t, Keyword.t) :: __MODULE__.t
   def add_headers(client, headers) do
-    updated_headers = merge_headers(client.headers, Keyword.new(headers))
+    updated_headers = merge_headers(client.headers, headers)
 
     %__MODULE__{client | headers: updated_headers}
   end
@@ -15,7 +52,7 @@ defmodule ExHal.Client do
   defmacrop log_req(method, url, do: block) do
     quote do
       {time, result} = :timer.tc(fn -> unquote(block) end)
-      Logger.debug "#{unquote(method)} <#{unquote(url)}> completed in #{time}ms"
+      @logger.debug "#{unquote(method)} <#{unquote(url)}> completed in #{div(time, 1000)}ms"
       result
     end
   end
