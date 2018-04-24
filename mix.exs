@@ -24,7 +24,7 @@ defmodule ExHal.Mixfile do
     [
       {:poison, "~> 2.2 or ~> 3.0"},
       {:uri_template, "~> 1.0"},
-      {:httpoison, "~> 0.11"},
+      {:httpoison, "~> 0.11 or ~> 1.0"},
 
       {:earmark, ">= 0.0.0", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
