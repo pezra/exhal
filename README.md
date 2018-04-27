@@ -286,6 +286,57 @@ iex> json_patches = [%{"op" => "replace", "path" => "/mailingAddress", "value" =
 iex> employee |> PersonTranscoder.patch!(json_patches) |> ManagerTranscoder.patch!(json_patches)
 ```
 
+### Forms
+
+ExHal supports [Forms (Dwolla style)](https://github.com/Dwolla/hal-forms) to allow further decoupling of server and client implementations.
+
+Given a document
+
+```json
+{ "_links": {
+    "item": [],
+    "self": { "href": "http://example.com/comments" }
+  },
+  "_forms": {
+    "create-form": {
+      "_links": { "target": { "href": "http://example.com/comments" } },
+      "method": "POST",
+      "contentType": "application/hal+json",
+      "fields": [
+        { "name": "comment",
+          "path": "/comment",
+          "type": "string",
+          "displayText": "Comment",
+          "validations": {
+            "required": true
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Creating a new item in the collection is simple:
+
+```elixir
+iex> ExHal.get_form(doc, "create-form")
+...> |> ExHal.Form.set_field("comment", "Very good!")
+...> |> ExHal.Form.submit(ExHal.client)
+{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
+```
+
+The list of fields, and their types is also available. This makes it possible to dynamically build user interfaces.
+
+```elixir
+iex> ExHal.get_form(doc, "create-form")
+...> |> ExHal.Form.get_fields()
+...> |> Enum.map(fn (field) -> {field.display_name, field.type} end)
+[{"Comment", :string}]
+```
+
+
+
 ### Assertions about HAL documents
 
 Several assertion and helper functions are available to support testing. These functions accept a `ExHal.Document` or a string.
