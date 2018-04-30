@@ -288,7 +288,7 @@ iex> employee |> PersonTranscoder.patch!(json_patches) |> ManagerTranscoder.patc
 
 ### Forms
 
-ExHal supports [Forms (Dwolla style)](https://github.com/Dwolla/hal-forms) to allow further decoupling of server and client implementations.
+ExHal supports [Forms (Dwolla style)](https://github.com/Dwolla/hal-forms)* to allow further decoupling of server and client implementations.
 
 Given a document
 
@@ -335,7 +335,10 @@ iex> ExHal.get_form(doc, "create-form")
 [{"Comment", :string}]
 ```
 
-
+\* At this time there are major limitations to the forms support. Namely
+  - only `PUT` and `POST` forms
+  - only JSON content types
+  - only native JSON field types
 
 ### Assertions about HAL documents
 

@@ -9,8 +9,7 @@ defmodule ExHal.Client do
   """
 
   require Logger
-  alias ExHal.Document
-  alias ExHal.NonHalResponse
+  alias ExHal.{Document, NonHalResponse, ResponseHeader}
 
   @logger Application.get_env(:exhal, :logger, Logger)
 
@@ -23,7 +22,6 @@ defmodule ExHal.Client do
   @doc """
   Returns a new client.
   """
-  @spec new(Keyword.t, Keyword.t) :: __MODULE__.t
   def new(headers, follow_redirect: follow) do
     %__MODULE__{headers: headers, opts: [follow_redirect: follow]}
   end
@@ -57,6 +55,7 @@ defmodule ExHal.Client do
     end
   end
 
+  @callback get(__MODULE__.t, String.t, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
   def get(client, url, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -66,6 +65,7 @@ defmodule ExHal.Client do
     end
   end
 
+  @callback post(__MODULE__.t, String.t, <<>>, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
   def post(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -75,6 +75,7 @@ defmodule ExHal.Client do
     end
   end
 
+  @callback put(__MODULE__.t, String.t, <<>>, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
   def put(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -84,6 +85,7 @@ defmodule ExHal.Client do
     end
   end
 
+  @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
   def patch(client, url, body, opts \\ []) do
   {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -92,6 +94,8 @@ defmodule ExHal.Client do
       |> extract_return(client)
     end
   end
+
+  # Private functions
 
   defp figure_headers_and_opt(opts, client) do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])
