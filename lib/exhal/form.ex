@@ -14,8 +14,8 @@ defmodule ExHal.Form do
   }
 
   @typedoc """
-  A from that can be completed and submitted. This type is opaque and
-  should use only as a argument to functions in this `ExHal.Form` module.
+  A form that can be completed and submitted. This type is opaque and
+  should only be used as an argument to functions in this, `#{__MODULE__}` module.
   """
   @opaque t :: %__MODULE__{}
 
@@ -26,12 +26,12 @@ defmodule ExHal.Form do
     :fields
   ]
 
-  @spec from_forms_entry(%{}) :: __MODULE__.t()
   @doc """
   Creates a new form from raw form JSON.
 
   Raises `ArgumentError` if `a_map` is not a valid form fragment.
   """
+  @spec from_forms_entry(%{}) :: __MODULE__.t()
   def from_forms_entry(a_map) do
     %__MODULE__{
       target: extract_target(a_map),
@@ -41,20 +41,20 @@ defmodule ExHal.Form do
     }
   end
 
-  @spec get_fields(__MODULE__.t()) :: [FormField.t()]
   @doc """
   Returns list of the fields in this form.
   """
+  @spec get_fields(__MODULE__.t()) :: [FormField.t()]
   def get_fields(a_form) do
     a_form.fields
   end
 
-  @spec set_field_value(__MODULE__.t(), String.t(), FormField.field_value()) :: __MODULE__.t()
   @doc """
   Returns form with the specified fields value updated.
 
   Raises `ArgumentError` if the specified field doesn't exist.
   """
+  @spec set_field_value(__MODULE__.t(), String.t(), FormField.field_value()) :: __MODULE__.t()
   def set_field_value(form, field_name, new_value) do
     updated_field =
       get_field(form, field_name)
@@ -63,10 +63,10 @@ defmodule ExHal.Form do
     replace_field(form, field_name, updated_field)
   end
 
-  @spec submit(__MODULE__.t(), Client.t()) :: Client.http_response()
   @doc """
   Submits form and returns the response.
   """
+  @spec submit(__MODULE__.t(), Client.t()) :: Client.http_response()
   def submit(form, client) do
     apply(client_module(),
       form.method,

@@ -4,10 +4,10 @@ defmodule ExHal.JsonFormEncoder do
   """
   alias ExHal.Form
 
-  @spec encode(ExHal.Form.t()) :: String.t()
   @doc """
   Returns a string containing the JSON rendering of the provided form.
   """
+  @spec encode(ExHal.Form.t()) :: String.t()
   def encode(form) do
     form
     |> Form.get_fields()

@@ -41,12 +41,12 @@ defmodule ExHal.FormField do
   """
   @type field_value :: nil | true | false | list | float | integer | String.t()
 
-  @spec from_field_entry(%{}) :: __MODULE__.t()
   @doc """
   Create a new form field from parsed form json.
 
   Raises `ArgumentError` if json is invalid.
   """
+  @spec from_field_entry(%{}) :: __MODULE__.t()
   def from_field_entry(a_map) do
     %__MODULE__{
       name: extract_name(a_map),
@@ -56,12 +56,12 @@ defmodule ExHal.FormField do
     }
   end
 
-  @spec set_value(__MODULE__.t(), field_value) :: __MODULE__.t()
   @doc """
   Returns a form field with the specified value.
 
   Raises `ArgumentError` if the new value is the wrong type.
   """
+  @spec set_value(__MODULE__.t(), field_value) :: __MODULE__.t()
   def set_value(field, new_value) do
     %__MODULE__{field | value: new_value}
   end
