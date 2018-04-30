@@ -39,21 +39,10 @@ defmodule ExHal.Mixfile do
   end
 
   defp package do
-    [ files: git_files() -- excluded_files(),
-      licenses: ["http://opensource.org/licenses/MIT"],
+    [ licenses: ["http://opensource.org/licenses/MIT"],
       maintainers: ["Peter Williams"],
-      links: %{"homepage": "http://github.com/pezra/exhal"} ]
-  end
-
-  defp git_files do
-    System.cmd("git", ["ls-files", "-z"])
-      |> (fn {x,_} -> x end).()
-      |> String.split(<<0>>)
-      |> Enum.filter(fn x -> x != "" end)
-  end
-
-  defp excluded_files do
-    [ "lib/mix/tasks/release.ex" ]
+      links: %{"homepage": "http://github.com/pezra/exhal"}
+    ]
   end
 
   # For testing with continuous integration systems, it is possible to force
@@ -70,7 +59,7 @@ defmodule ExHal.Mixfile do
   #   EXHAL_EX_WIDGET_VERSION=2.2.3 mix do deps.get, deps.compile
   #   EXHAL_EX_WIDGET_VERSION="~> 1.5" mix do deps.get, deps.comile
 
-  @overridable_deps [:poison]
+  @overridable_deps [:poison, :httpoison]
   defp dep_version_overrides(deps_list) do
     @overridable_deps
     |> Enum.map(&({&1, env_var_value_for_dep(&1)}))

@@ -73,7 +73,7 @@ defmodule ExHal.Transcoder do
 
   @type t :: module
 
-  @callbackdoc"""
+  @doc """
   Returns a decoded version of HAL document merged with the initial params.
 
   initial_params - the initial params with which the newly extracted info should
@@ -86,7 +86,7 @@ defmodule ExHal.Transcoder do
   @callback decode!(ExHal.Document.t, keyword) :: %{}
   @callback decode!(%{}, ExHal.Document.t, keyword) :: %{}
 
-  @callbackdoc"""
+  @doc """
   Returns an HAL version of params provided, combined with the initial doc.
 
   initial_doc - the initial document with which the newly encoded info should
@@ -99,7 +99,7 @@ defmodule ExHal.Transcoder do
   @callback encode!(%{}, keyword) :: ExHal.Document.t
   @callback encode!(Exhal.Document.t, %{}, keyword) :: ExHal.Document.t
 
-  @callbackdoc"""
+  @doc """
   Updates an existing object, such as one created by ExHal.Transcoder.decode!
 
   initial_object - a map containing properties, links etc
@@ -158,7 +158,7 @@ defmodule ExHal.Transcoder do
   defmodule ValueConverter do
     @type t :: module
 
-    @callbackdoc"""
+    @doc"""
     Returns Elixir representation of HAL value.
 
     hal_value - The HAL representation of the value to convert.
@@ -176,7 +176,7 @@ defmodule ExHal.Transcoder do
   defmodule ValueConverterWithOptions do
     @type t :: module
 
-    @callbackdoc"""
+    @doc"""
     Returns Elixir representation of HAL value.
 
     hal_value - The HAL representation of the value to convert.
