@@ -1,7 +1,8 @@
 defmodule ExHal.Navigation do
+  @client_module Application.get_env(:exhal, :client, ExHal.Client)
+
   alias ExHal.Link
   alias ExHal.Error
-  alias ExHal.Client
   alias ExHal.ResponseHeader
 
   @doc """
@@ -58,7 +59,7 @@ defmodule ExHal.Navigation do
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Client.post(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:ok, link} -> @client_module.post(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 
@@ -74,7 +75,7 @@ defmodule ExHal.Navigation do
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Client.put(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:ok, link} -> @client_module.put(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 
@@ -90,7 +91,7 @@ defmodule ExHal.Navigation do
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> Client.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:ok, link} -> @client_module.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 
@@ -175,7 +176,7 @@ defmodule ExHal.Navigation do
       Link.embedded?(link) ->
         {:ok, link.target, %ResponseHeader{status_code: 200}}
       :else ->
-        Client.get(client, Link.target_url!(link, tmpl_vars), opts)
+        @client_module.get(client, Link.target_url!(link, tmpl_vars), opts)
     end
   end
 end

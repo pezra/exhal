@@ -1,19 +1,15 @@
 language: elixir
 
 elixir:
-  - 1.3
-  - 1.4
+  - 1.5
+  - 1.6
 
 otp_release:
-  - 18.3
   - 19.3
-  - 20.0
+  - 20.3
 
 env:
   - EXHAL_POISON_VERSION="~> 2.2"
   - EXHAL_POISON_VERSION="~> 3.1"
-
-matrix:
-  exclude:
-    - elixir: 1.3
-      otp_release: 20.0
+  - EXHAL_HTTPOISON_VERSION="~> 0.11"
+  - EXHAL_HTTPOISON_VERSION="~> 1.0"
