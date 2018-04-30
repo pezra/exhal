@@ -326,7 +326,7 @@ iex> ExHal.get_form(doc, "create-form")
 {:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}
 ```
 
-The list of fields, and their types is also available. This makes it possible to dynamically build user interfaces.
+The list of fields is also available. This makes it possible to dynamically build user interfaces.
 
 ```elixir
 iex> ExHal.get_form(doc, "create-form")
