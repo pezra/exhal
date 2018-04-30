@@ -8,13 +8,14 @@ defmodule ExHal.Document do
   alias ExHal.Link
   alias ExHal.NsReg
 
-  defstruct properties: %{}, links: %{}, client:
+  defstruct properties: %{},
+            links: %{},
+            client:
+              @doc("""
+              Returns a new `%ExHal.Document` representing the HAL document provided.
+              """)
 
-
-  @doc """
-    Returns a new `%ExHal.Document` representing the HAL document provided.
-    """
-  def parse(hal_str, client \\ ExHal.client)
+  def parse(hal_str, client \\ ExHal.client())
 
   def parse(hal_str, client) when is_binary(hal_str) do
     case Poison.Parser.parse(hal_str) do
@@ -29,14 +30,15 @@ defmodule ExHal.Document do
   end
 
   @doc """
-    Returns a new `%ExHal.Document` representing the HAL document provided.
-    """
-  def parse!(hal_str, client \\ ExHal.client)
+  Returns a new `%ExHal.Document` representing the HAL document provided.
+  """
+  def parse!(hal_str, client \\ ExHal.client())
 
   def parse!(hal_str, client) when is_binary(hal_str) do
     {:ok, doc} = parse(client, hal_str)
     doc
   end
+
   def parse!(client, hal_str) do
     parse!(hal_str, client)
   end
@@ -47,38 +49,41 @@ defmodule ExHal.Document do
   def render!(doc) do
     doc.properties
     |> Map.merge(links_sections_to_json_map(doc))
-    |> Poison.encode!
+    |> Poison.encode!()
   end
-
 
   @doc """
-    Returns new ExHal.Document
-    """
-  def from_parsed_hal(parsed_hal, client \\ ExHal.client)
+  Returns new ExHal.Document
+  """
+  def from_parsed_hal(parsed_hal, client \\ ExHal.client())
+
   def from_parsed_hal(parsed_hal, %ExHal.Client{} = client) do
-    %__MODULE__{client: client,
-                properties: properties_in(parsed_hal),
-                links: links_in(client, parsed_hal)}
+    %__MODULE__{
+      client: client,
+      properties: properties_in(parsed_hal),
+      links: links_in(client, parsed_hal)
+    }
   end
+
   def from_parsed_hal(client, parsed_hal), do: from_parsed_hal(parsed_hal, client)
 
   @doc """
-    Returns true iff the document contains at least one link with the specified rel.
-    """
+  Returns true iff the document contains at least one link with the specified rel.
+  """
   def has_link?(doc, rel) do
     Map.has_key?(doc.links, rel)
   end
 
   @doc """
-    **Deprecated**
+  **Deprecated**
 
-    See to_json_map/1
-    """
+  See to_json_map/1
+  """
   def to_json_hash(doc), do: to_json_map(doc)
 
   @doc """
-    Returns a map that matches the shape of the intended JSON output.
-    """
+  Returns a map that matches the shape of the intended JSON output.
+  """
   def to_json_map(doc) do
     doc.properties
     |> Map.merge(links_sections_to_json_map(doc))
@@ -87,10 +92,10 @@ defmodule ExHal.Document do
   @doc """
   Returns `{:ok, <url of specified document>}` or `:error`.
   """
-  def url(a_doc, default_fn \\ fn (_doc) -> :error end) do
+  def url(a_doc, default_fn \\ fn _doc -> :error end) do
     case ExHal.Locatable.url(a_doc) do
       :error -> default_fn.(a_doc)
-      url    -> url
+      url -> url
     end
   end
 
@@ -123,9 +128,7 @@ defmodule ExHal.Document do
   if neither are found.
   """
   def get_lazy(a_doc, name, default_fun) do
-    get_property_lazy(a_doc, name,
-      fn -> get_links_lazy(a_doc, name, default_fun) end
-    )
+    get_property_lazy(a_doc, name, fn -> get_links_lazy(a_doc, name, default_fun) end)
   end
 
   @doc """
@@ -158,7 +161,6 @@ defmodule ExHal.Document do
     Map.get_lazy(a_doc.links, link_name, default_fun)
   end
 
-
   # Modification
 
   @doc """
@@ -176,31 +178,31 @@ defmodule ExHal.Document do
     Returns new ExHal.Document with the specified link.
   """
   def put_link(doc, rel, target, templated \\ false) do
-    new_rel_links = Map.get(doc.links, rel, []) ++
-      [%ExHal.Link{rel: rel, href: target, templated: templated, name: nil}]
+    new_rel_links =
+      Map.get(doc.links, rel, []) ++
+        [%ExHal.Link{rel: rel, href: target, templated: templated, name: nil}]
 
     %{doc | links: Map.put(doc.links, rel, new_rel_links)}
   end
 
   defp links_sections_to_json_map(doc) do
-    {embedded, references} = doc.links
-    |> Map.to_list
-    |> Enum.flat_map(fn ({_,v}) -> v end)
-    |> Enum.partition(&(Link.embedded?(&1)))
+    {embedded, references} =
+      doc.links
+      |> Map.to_list()
+      |> Enum.flat_map(fn {_, v} -> v end)
+      |> Enum.partition(&Link.embedded?(&1))
 
-    %{"_embedded" => render_links(embedded),
-      "_links" => render_links(references)}
+    %{"_embedded" => render_links(embedded), "_links" => render_links(references)}
   end
 
   defp render_links(enum) do
     enum
-    |> Enum.group_by(&(&1.rel))
-    |> Map.to_list
-    |> Enum.map(fn ({rel, links}) -> {rel, Enum.map(links, &Link.to_json_map(&1))} end)
-    |> Enum.map(fn ({rel, fragments}) -> {rel, unbox_single_fragments(fragments)} end)
-    |> Map.new
+    |> Enum.group_by(& &1.rel)
+    |> Map.to_list()
+    |> Enum.map(fn {rel, links} -> {rel, Enum.map(links, &Link.to_json_map(&1))} end)
+    |> Enum.map(fn {rel, fragments} -> {rel, unbox_single_fragments(fragments)} end)
+    |> Map.new()
   end
-
 
   defp properties_in(parsed_json) do
     Map.drop(parsed_json, ["_links", "_embedded"])
@@ -218,7 +220,7 @@ defmodule ExHal.Document do
     raw_links = simple_links_in(parsed_json) ++ embedded_links_in(client, parsed_json)
     links = expand_curies(raw_links, namespaces)
 
-    Enum.group_by(links, fn a_link -> a_link.rel end )
+    Enum.group_by(links, fn a_link -> a_link.rel end)
   end
 
   defp simple_links_in(parsed_json) do
@@ -231,7 +233,7 @@ defmodule ExHal.Document do
   defp links_section_to_links(links) do
     Enum.flat_map(links, fn {rel, l} ->
       List.wrap(l)
-      |> Enum.filter(&(&1["href"]))
+      |> Enum.filter(& &1["href"])
       |> Enum.map(&Link.from_links_entry(rel, &1))
     end)
   end
@@ -260,7 +262,7 @@ defimpl ExHal.Locatable, for: ExHal.Document do
 
   def url(a_doc) do
     case ExHal.get_links_lazy(a_doc, "self", fn -> :error end) do
-      :error     -> :error
+      :error -> :error
       [link | _] -> Link.target_url(link)
     end
   end

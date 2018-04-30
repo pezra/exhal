@@ -1,75 +1,75 @@
 defmodule ExHal.Transcoder do
   @moduledoc """
-    Helps to build transcoders for HAL documents.
+  Helps to build transcoders for HAL documents.
 
-    Given a document like
+  Given a document like
 
-    ```json
-    {
-      "name": "Jane Doe",
-      "mailingAddress": "123 Main St",
-      "_links": {
-        "app:department": { "href": "http://example.com/dept/42" },
-        "app:manager":    { "href": "http://example.com/people/84" }
-      }
+  ```json
+  {
+    "name": "Jane Doe",
+    "mailingAddress": "123 Main St",
+    "_links": {
+      "app:department": { "href": "http://example.com/dept/42" },
+      "app:manager":    { "href": "http://example.com/people/84" }
     }
-    ```
+  }
+  ```
 
-    We can define an transcoder for it.
+  We can define an transcoder for it.
 
-    ```elixir
-    defmodule PersonTranscoder do
-      use ExHal.Transcoder
+  ```elixir
+  defmodule PersonTranscoder do
+    use ExHal.Transcoder
 
-      defproperty "name"
-      defproperty "mailingAddress", param: :address
-      deflink     "app:department", param: :department_url
-      deflink     "app:manager",    param: :manager_id, value_converter: PersonUrlConverter
+    defproperty "name"
+    defproperty "mailingAddress", param: :address
+    deflink     "app:department", param: :department_url
+    deflink     "app:manager",    param: :manager_id, value_converter: PersonUrlConverter
+  end
+  ```
+
+  `PersonUrlConverter` is a module that has adopted the `ExHal.ValueConverter` behavior.
+
+  ```elixir
+  defmodule PersonUrlConverter do
+    @behaviour ExHal.ValueConveter
+
+    def from_hal(person_url) do
+      to_string(person_url)
+      |> String.split("/")
+      |> List.last
     end
-    ```
 
-    `PersonUrlConverter` is a module that has adopted the `ExHal.ValueConverter` behavior.
-
-    ```elixir
-    defmodule PersonUrlConverter do
-      @behaviour ExHal.ValueConveter
-
-      def from_hal(person_url) do
-        to_string(person_url)
-        |> String.split("/")
-        |> List.last
-      end
-
-      def to_hal(person_id) do
-        "http://example.com/people/\#{person_id}"
-      end
+    def to_hal(person_id) do
+      "http://example.com/people/\#{person_id}"
     end
-    ```
+  end
+  ```
 
-    We can use this transcoder to to extract the pertinent parts of the document into a map.
+  We can use this transcoder to to extract the pertinent parts of the document into a map.
 
-    ```elixir
-    iex> PersonTranscoder.decode!(doc)
-    %{name: "Jane Doe",
-      address: "123 Main St",
-      department_url: "http://example.com/dept/42",
-      manager_id: 84}
-    ```
-    iex> PersonTranscoder.encode!(%{name: "Jane Doe",
-      address: "123 Main St",
-      department_url: "http://example.com/dept/42",
-      manager_id: 84})
-    ~s(
-    {
-      "name": "Jane Doe",
-      "mailingAddress": "123 Main St",
-      "_links": {
-        "app:department": { "href": "http://example.com/dept/42" },
-        "app:manager":    { "href": "http://example.com/people/84" }
-       }
-    } )
-    ```
-    """
+  ```elixir
+  iex> PersonTranscoder.decode!(doc)
+  %{name: "Jane Doe",
+    address: "123 Main St",
+    department_url: "http://example.com/dept/42",
+    manager_id: 84}
+  ```
+  iex> PersonTranscoder.encode!(%{name: "Jane Doe",
+    address: "123 Main St",
+    department_url: "http://example.com/dept/42",
+    manager_id: 84})
+  ~s(
+  {
+    "name": "Jane Doe",
+    "mailingAddress": "123 Main St",
+    "_links": {
+      "app:department": { "href": "http://example.com/dept/42" },
+      "app:manager":    { "href": "http://example.com/people/84" }
+     }
+  } )
+  ```
+  """
 
   @type t :: module
 
@@ -81,10 +81,10 @@ defmodule ExHal.Transcoder do
   src_doc - the document to interpret
   opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
-  @callback decode!(ExHal.Document.t) :: %{}
-  @callback decode!(%{}, ExHal.Document.t) :: %{}
-  @callback decode!(ExHal.Document.t, keyword) :: %{}
-  @callback decode!(%{}, ExHal.Document.t, keyword) :: %{}
+  @callback decode!(ExHal.Document.t()) :: %{}
+  @callback decode!(%{}, ExHal.Document.t()) :: %{}
+  @callback decode!(ExHal.Document.t(), keyword) :: %{}
+  @callback decode!(%{}, ExHal.Document.t(), keyword) :: %{}
 
   @doc """
   Returns an HAL version of params provided, combined with the initial doc.
@@ -94,10 +94,10 @@ defmodule ExHal.Transcoder do
   src_params - the params to encoded into HAL
   opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
-  @callback encode!(%{}) :: ExHal.Document.t
-  @callback encode!(Exhal.Document.t, %{}) :: ExHal.Document.t
-  @callback encode!(%{}, keyword) :: ExHal.Document.t
-  @callback encode!(Exhal.Document.t, %{}, keyword) :: ExHal.Document.t
+  @callback encode!(%{}) :: ExHal.Document.t()
+  @callback encode!(Exhal.Document.t(), %{}) :: ExHal.Document.t()
+  @callback encode!(%{}, keyword) :: ExHal.Document.t()
+  @callback encode!(Exhal.Document.t(), %{}, keyword) :: ExHal.Document.t()
 
   @doc """
   Updates an existing object, such as one created by ExHal.Transcoder.decode!
@@ -117,9 +117,9 @@ defmodule ExHal.Transcoder do
     quote do
       import unquote(__MODULE__)
 
-      Module.register_attribute __MODULE__, :extractors, accumulate: true, persist: false
-      Module.register_attribute __MODULE__, :injectors,  accumulate: true, persist: false
-      Module.register_attribute __MODULE__, :patchers,   accumulate: true, persist: false
+      Module.register_attribute(__MODULE__, :extractors, accumulate: true, persist: false)
+      Module.register_attribute(__MODULE__, :injectors, accumulate: true, persist: false)
+      Module.register_attribute(__MODULE__, :patchers, accumulate: true, persist: false)
 
       @before_compile unquote(__MODULE__)
     end
@@ -131,25 +131,28 @@ defmodule ExHal.Transcoder do
 
       def decode!(initial_params, %ExHal.Document{} = doc, opts) do
         @extractors
-        |> Enum.reduce(initial_params, &(apply(__MODULE__, &1, [doc, &2, opts])))
+        |> Enum.reduce(initial_params, &apply(__MODULE__, &1, [doc, &2, opts]))
       end
-      def decode!(doc, [_|_] = opts), do: decode!(%{}, doc, opts)
+
+      def decode!(doc, [_ | _] = opts), do: decode!(%{}, doc, opts)
       def decode!(initial_params, %ExHal.Document{} = doc), do: decode!(initial_params, doc, [])
       def decode!(doc), do: decode!(%{}, doc, [])
 
       def encode!(%ExHal.Document{} = initial_doc, params, opts) do
         @injectors
-        |> Enum.reduce(initial_doc, &(apply(__MODULE__, &1, [&2, params, opts])))
+        |> Enum.reduce(initial_doc, &apply(__MODULE__, &1, [&2, params, opts]))
       end
-      def encode!(params, [_|_] = opts), do: encode!(%ExHal.Document{}, params, opts)
+
+      def encode!(params, [_ | _] = opts), do: encode!(%ExHal.Document{}, params, opts)
       def encode!(%ExHal.Document{} = initial_doc, params), do: encode!(initial_doc, params, [])
       def encode!(params), do: encode!(%ExHal.Document{}, params, [])
 
       def patch!(initial_object, patch_ops), do: patch!(initial_object, patch_ops, [])
       def patch!(initial_object, [], _opts), do: initial_object
+
       def patch!(initial_object, [patch_op | remaining_ops], opts) do
         @patchers
-        |> Enum.reduce(initial_object, &(apply(__MODULE__, &1, [&2, patch_op, [opts]])))
+        |> Enum.reduce(initial_object, &apply(__MODULE__, &1, [&2, patch_op, [opts]]))
         |> patch!(remaining_ops, opts)
       end
     end
@@ -158,14 +161,14 @@ defmodule ExHal.Transcoder do
   defmodule ValueConverter do
     @type t :: module
 
-    @doc"""
+    @doc """
     Returns Elixir representation of HAL value.
 
     hal_value - The HAL representation of the value to convert.
     """
     @callback from_hal(any) :: any
 
-    @callbackdoc"""
+    @callbackdoc """
     Returns HAL representation of Elixir value.
 
     elixir_value - The Elixir representation of the value to convert.
@@ -176,7 +179,7 @@ defmodule ExHal.Transcoder do
   defmodule ValueConverterWithOptions do
     @type t :: module
 
-    @doc"""
+    @doc """
     Returns Elixir representation of HAL value.
 
     hal_value - The HAL representation of the value to convert.
@@ -184,7 +187,7 @@ defmodule ExHal.Transcoder do
     """
     @callback from_hal(any, keyword) :: any
 
-    @callbackdoc"""
+    @callbackdoc """
     Returns HAL representation of Elixir value.
 
     elixir_value - The Elixir representation of the value to convert.
@@ -201,14 +204,14 @@ defmodule ExHal.Transcoder do
   end
 
   defp interpret_opts(options, name) do
-    unique_string = (:rand.uniform * 100_000_000) |> trunc |> Integer.to_string
+    unique_string = (:rand.uniform() * 100_000_000) |> trunc |> Integer.to_string()
 
-    param_names = options |> Keyword.get(:param, String.to_atom(name)) |> List.wrap
+    param_names = options |> Keyword.get(:param, String.to_atom(name)) |> List.wrap()
     templated = options |> Keyword.get(:templated, false)
     value_converter = Keyword.get(options, :value_converter, IdentityConverter)
-    extractor_name = :"extract_#{unique_string}_#{Enum.join(param_names,".")}"
-    injector_name = :"inject_#{unique_string}_#{Enum.join(param_names,".")}"
-    patcher_name = :"patch_#{unique_string}_#{Enum.join(param_names,".")}"
+    extractor_name = :"extract_#{unique_string}_#{Enum.join(param_names, ".")}"
+    injector_name = :"inject_#{unique_string}_#{Enum.join(param_names, ".")}"
+    patcher_name = :"patch_#{unique_string}_#{Enum.join(param_names, ".")}"
 
     {param_names, value_converter, extractor_name, injector_name, patcher_name, templated}
   end
@@ -231,6 +234,7 @@ defmodule ExHal.Transcoder do
         |> decode_value(unquote(value_converter), opts)
         |> put_param(params, unquote(param_names))
       end
+
       @extractors unquote(extractor_name)
 
       def unquote(injector_name)(doc, params, opts) do
@@ -238,12 +242,17 @@ defmodule ExHal.Transcoder do
         |> encode_value(unquote(value_converter), opts)
         |> put_property(doc, unquote(name))
       end
+
       @injectors unquote(injector_name)
 
       unquote do
         unless(Keyword.get(options, :protected)) do
           quote do
-            def unquote(patcher_name)(obj, %{"op" => "replace", "path" => "/#{unquote(name)}", "value" => value}, opts) do
+            def unquote(patcher_name)(
+                  obj,
+                  %{"op" => "replace", "path" => "/#{unquote(name)}", "value" => value},
+                  opts
+                ) do
               value
               |> decode_value(unquote(value_converter), opts)
               |> put_param(obj, unquote(param_names))
@@ -251,6 +260,7 @@ defmodule ExHal.Transcoder do
           end
         end
       end
+
       def unquote(patcher_name)(obj, _patch_op, _opts), do: obj
       @patchers unquote(patcher_name)
     end
@@ -273,10 +283,11 @@ defmodule ExHal.Transcoder do
       def unquote(extractor_name)(doc, params, opts) do
         ExHal.get_links_lazy(doc, unquote(rel), fn -> [] end)
         |> Enum.map(&Map.get(&1, :href))
-        |> List.first
+        |> List.first()
         |> decode_value(unquote(value_converter), opts)
         |> put_param(params, unquote(param_names))
       end
+
       @extractors unquote(extractor_name)
 
       def unquote(injector_name)(doc, params, opts) do
@@ -284,12 +295,21 @@ defmodule ExHal.Transcoder do
         |> encode_value(unquote(value_converter), opts)
         |> put_link(doc, unquote(rel), unquote(templated))
       end
+
       @injectors unquote(injector_name)
 
       unquote do
         unless(Keyword.get(options, :protected)) do
           quote do
-            def unquote(patcher_name)(obj, %{"op" => "replace", "path" => "/_links/#{unquote(rel)}", "value" => %{"href" => href}}, opts) do
+            def unquote(patcher_name)(
+                  obj,
+                  %{
+                    "op" => "replace",
+                    "path" => "/_links/#{unquote(rel)}",
+                    "value" => %{"href" => href}
+                  },
+                  opts
+                ) do
               href
               |> decode_value(unquote(value_converter), opts)
               |> put_param(obj, unquote(param_names))
@@ -297,6 +317,7 @@ defmodule ExHal.Transcoder do
           end
         end
       end
+
       def unquote(patcher_name)(obj, _patch_op, _opts), do: obj
       @patchers unquote(patcher_name)
     end
@@ -320,41 +341,58 @@ defmodule ExHal.Transcoder do
         |> decode_value(unquote(value_converter), opts)
         |> put_param(params, unquote(param_names))
       end
+
       @extractors unquote(extractor_name)
 
       def unquote(injector_name)(doc, params, opts) do
         get_in(params, unquote(param_names))
         |> encode_value(unquote(value_converter), opts)
-        |> Enum.reduce(doc, &(put_link(&1, &2, unquote(rel))))
+        |> Enum.reduce(doc, &put_link(&1, &2, unquote(rel)))
       end
+
       @injectors unquote(injector_name)
 
       unquote do
         unless(Keyword.get(options, :protected)) do
           quote do
-            def unquote(patcher_name)(obj, %{"op" => "add", "path" => "/_links/#{unquote(rel)}/-", "value" => %{"href" => href}}, opts) do
-              update_in(obj, unquote(param_names),
-                fn
-                  (nil)   -> [ href ]
-                  (links) -> [ href | links]
+            def unquote(patcher_name)(
+                  obj,
+                  %{
+                    "op" => "add",
+                    "path" => "/_links/#{unquote(rel)}/-",
+                    "value" => %{"href" => href}
+                  },
+                  opts
+                ) do
+              update_in(obj, unquote(param_names), fn
+                nil -> [href]
+                links -> [href | links]
               end)
             end
-            def unquote(patcher_name)(obj, %{"op" => "replace", "path" => "/_links/#{unquote(rel)}", "value" => links}, opts) do
-              hrefs = links
-              |> List.wrap
-              |> Enum.map(&Map.get(&1, "href"))
 
-              update_in(obj, unquote(param_names), fn(_) -> hrefs end)
+            def unquote(patcher_name)(
+                  obj,
+                  %{"op" => "replace", "path" => "/_links/#{unquote(rel)}", "value" => links},
+                  opts
+                ) do
+              hrefs =
+                links
+                |> List.wrap()
+                |> Enum.map(&Map.get(&1, "href"))
+
+              update_in(obj, unquote(param_names), fn _ -> hrefs end)
             end
           end
         end
       end
+
       def unquote(patcher_name)(obj, _patch_op, _opts), do: obj
       @patchers unquote(patcher_name)
     end
   end
 
   def decode_value(nil, _opts), do: nil
+
   def decode_value(raw_value, converter, opts) do
     if :erlang.function_exported(converter, :from_hal, 2) do
       converter.from_hal(raw_value, opts)
@@ -364,6 +402,7 @@ defmodule ExHal.Transcoder do
   end
 
   def put_param(nil, params, _), do: params
+
   def put_param(value, params, param_names) do
     params = build_out_containers(params, param_names)
 
@@ -371,6 +410,7 @@ defmodule ExHal.Transcoder do
   end
 
   def encode_value(nil, _, _opts), do: nil
+
   def encode_value(raw_value, converter, opts) do
     if :erlang.function_exported(converter, :to_hal, 2) do
       converter.to_hal(raw_value, opts)
@@ -383,23 +423,27 @@ defmodule ExHal.Transcoder do
 
   def put_link(target, doc, rel, templated \\ false)
   def put_link(nil, doc, _, _), do: doc
+
   def put_link(target, doc, rel, templated) do
     ExHal.Document.put_link(doc, rel, target, templated)
   end
 
   def put_property(nil, doc, _), do: doc
+
   def put_property(value, doc, prop_name) do
     ExHal.Document.put_property(doc, prop_name, value)
   end
 
   defp build_out_containers(params, [_h] = _param_names), do: params
+
   defp build_out_containers(params, param_names) do
-    (1..(Enum.count(param_names) - 1))
+    1..(Enum.count(param_names) - 1)
     |> Enum.map(&Enum.take(param_names, &1))
-    |> Enum.reduce(params, fn(c, acc) -> case get_in(acc, c) do
-                                           nil -> put_in(acc, c, %{})
-                                           _ -> acc
-                                         end
+    |> Enum.reduce(params, fn c, acc ->
+      case get_in(acc, c) do
+        nil -> put_in(acc, c, %{})
+        _ -> acc
+      end
     end)
   end
 end
