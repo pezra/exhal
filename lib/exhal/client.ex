@@ -19,6 +19,14 @@ defmodule ExHal.Client do
   @opaque t :: %__MODULE__{headers: Keyword.t, opts: [follow_redirect: boolean()]}
   defstruct headers: [], opts: [follow_redirect: true]
 
+  @typedoc """
+  The return value of any function that makes an HTTP request.
+  """
+  @type http_response ::
+  {:ok, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
+  | {:error, Document.t() | NonHalResponse.t(), ResponseHeader.t() }
+  | {:error, Error.t()}
+
   @doc """
   Returns a new client.
   """
@@ -55,7 +63,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback get(__MODULE__.t, String.t, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
+  @callback get(__MODULE__.t, String.t, Keyword.t) :: http_response()
   def get(client, url, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -65,7 +73,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback post(__MODULE__.t, String.t, <<>>, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
+  @callback post(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def post(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -75,7 +83,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback put(__MODULE__.t, String.t, <<>>, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
+  @callback put(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def put(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -85,7 +93,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: {:ok, ExHal.Document.t, ExHal.ResponseHeader.t} | {:error, ExHal.Error.t()}
+  @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def patch(client, url, body, opts \\ []) do
   {headers, poison_opts} = figure_headers_and_opt(opts, client)
 

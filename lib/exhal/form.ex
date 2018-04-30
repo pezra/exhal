@@ -63,13 +63,12 @@ defmodule ExHal.Form do
     replace_field(form, field_name, updated_field)
   end
 
-  @spec submit(__MODULE__.t(), Client.t()) ::
-          {:ok, Document.t(), ResponseHeader.t()} | {:error, ExHal.Error.t()}
+  @spec submit(__MODULE__.t(), Client.t()) :: Client.http_response()
   @doc """
   Submits form and returns the response.
   """
   def submit(form, client) do
-    apply(client_module,
+    apply(client_module(),
       form.method,
       [client,
        form.target,
