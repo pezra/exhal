@@ -95,9 +95,9 @@ defmodule ExHal.Transcoder do
   opts - options for use by modules adopting ExHal.ValueConverterWithOptions behaviour
   """
   @callback encode!(%{}) :: ExHal.Document.t()
-  @callback encode!(Exhal.Document.t(), %{}) :: ExHal.Document.t()
+  @callback encode!(ExHal.Document.t(), %{}) :: ExHal.Document.t()
   @callback encode!(%{}, keyword) :: ExHal.Document.t()
-  @callback encode!(Exhal.Document.t(), %{}, keyword) :: ExHal.Document.t()
+  @callback encode!(ExHal.Document.t(), %{}, keyword) :: ExHal.Document.t()
 
   @doc """
   Updates an existing object, such as one created by ExHal.Transcoder.decode!
@@ -168,7 +168,7 @@ defmodule ExHal.Transcoder do
     """
     @callback from_hal(any) :: any
 
-    @callbackdoc """
+    @doc """
     Returns HAL representation of Elixir value.
 
     elixir_value - The Elixir representation of the value to convert.
@@ -187,7 +187,7 @@ defmodule ExHal.Transcoder do
     """
     @callback from_hal(any, keyword) :: any
 
-    @callbackdoc """
+    @doc """
     Returns HAL representation of Elixir value.
 
     elixir_value - The Elixir representation of the value to convert.

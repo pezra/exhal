@@ -3,10 +3,9 @@ defmodule ExHal.Document do
     A document is the representaion of a single resource in HAL.
   """
 
-  @type t :: %__MODULE__{}
+  @opaque t :: %__MODULE__{}
 
-  alias ExHal.Link
-  alias ExHal.NsReg
+  alias ExHal.{Link, NsReg, Client}
 
   defstruct properties: %{},
             links: %{},
@@ -52,10 +51,15 @@ defmodule ExHal.Document do
     |> Poison.encode!()
   end
 
+  @spec from_parsed_hal(%{}) :: __MODULE__.t()
+  @spec from_parsed_hal(%{}, Client.t()) :: __MODULE__.t()
+  @spec from_parsed_hal(Client.t(), %{}) :: __MODULE__.t()
   @doc """
   Returns new ExHal.Document
   """
-  def from_parsed_hal(parsed_hal, client \\ ExHal.client())
+  def from_parsed_hal(parsed_hal) do
+    from_parsed_hal(parsed_hal, ExHal.client())
+  end
 
   def from_parsed_hal(parsed_hal, %ExHal.Client{} = client) do
     %__MODULE__{

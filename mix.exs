@@ -2,18 +2,16 @@ defmodule ExHal.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :exhal,
-     description: "Use HAL APIs with ease",
-     version: "7.1.0",
-     elixir: "~> 1.5",
-
-     test_coverage: [tool: ExCoveralls],
-     preferred_cli_env: ["coveralls": :test,
-                         "coveralls.detail": :test,
-                         "coveralls.post": :test],
-
-     deps: deps(),
-     package: package()]
+    [
+      app: :exhal,
+      description: "Use HAL APIs with ease",
+      version: "7.1.0",
+      elixir: "~> 1.5",
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test],
+      deps: deps(),
+      package: package()
+    ]
   end
 
   def application do
@@ -26,11 +24,9 @@ defmodule ExHal.Mixfile do
       {:uri_template, "~> 1.0"},
       {:httpoison, "~> 0.11 or ~> 1.0"},
       {:odgn_json_pointer, "~> 1.0.0", app: false},
-
       {:earmark, ">= 0.0.0", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
-      {:dialyxir, "~> 0.3", only: :dev},
-
+      {:dialyxir, "~> 0.3", only: :dev, runtime: false},
       {:exvcr, "~> 0.7", only: :test},
       {:excoveralls, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test}
@@ -39,9 +35,10 @@ defmodule ExHal.Mixfile do
   end
 
   defp package do
-    [ licenses: ["http://opensource.org/licenses/MIT"],
+    [
+      licenses: ["http://opensource.org/licenses/MIT"],
       maintainers: ["Peter Williams"],
-      links: %{"homepage": "http://github.com/pezra/exhal"}
+      links: %{homepage: "http://github.com/pezra/exhal"}
     ]
   end
 
@@ -62,19 +59,18 @@ defmodule ExHal.Mixfile do
   @overridable_deps [:poison, :httpoison]
   defp dep_version_overrides(deps_list) do
     @overridable_deps
-    |> Enum.map(&({&1, env_var_value_for_dep(&1)}))
+    |> Enum.map(&{&1, env_var_value_for_dep(&1)})
     |> Enum.reduce(deps_list, &override_dep/2)
   end
 
   defp env_var_value_for_dep(dep_atom) do
-    dep_str = dep_atom |> Atom.to_string |> String.upcase
+    dep_str = dep_atom |> Atom.to_string() |> String.upcase()
     System.get_env("EXHAL_#{dep_str}_VERSION")
   end
 
   defp override_dep({_package, nil}, deps_list), do: deps_list
-  defp override_dep({package, version}, deps_list) do
-    Enum.reject(deps_list, fn(dep) -> elem(dep, 0) == package end) ++
-      [{package, version}]
-  end
 
+  defp override_dep({package, version}, deps_list) do
+    Enum.reject(deps_list, fn dep -> elem(dep, 0) == package end) ++ [{package, version}]
+  end
 end

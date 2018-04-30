@@ -16,7 +16,7 @@ defmodule ExHal.Client do
   @typedoc """
   Represents a client configuration/connection. Create with `new` function.
   """
-  @opaque t :: %__MODULE__{headers: Keyword.t(), opts: [follow_redirect: boolean()]}
+  @opaque t :: %__MODULE__{}
   defstruct headers: [], opts: [follow_redirect: true]
 
   @typedoc """

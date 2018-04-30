@@ -107,6 +107,7 @@ defmodule ExHal do
   @doc """
   Returns a default client
   """
+  @spec client() :: Client.t()
   def client do
     Client.new()
   end
