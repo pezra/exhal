@@ -1,14 +1,14 @@
 defmodule ExHal.Collection do
   @moduledoc """
-    Utility functions for dealing with RFC 6473 collections
-    """
+  Utility functions for dealing with RFC 6473 collections
+  """
 
   alias ExHal.Document
   alias ExHal.ResponseHeader
 
   @doc """
-    Returns a stream that iterate over the collection represented by `a_doc`.
-    """
+  Returns a stream that iterate over the collection represented by `a_doc`.
+  """
   def to_stream(a_doc) do
     Stream.resource(
       fn -> {:ok, a_doc} end,
@@ -28,7 +28,7 @@ defmodule ExHal.Collection do
   """
   def render!(enum) do
     to_json_hash(enum)
-    |> Poison.encode!
+    |> Poison.encode!()
   end
 
   @doc """
@@ -36,11 +36,11 @@ defmodule ExHal.Collection do
     see `render/1`
   """
   def to_json_hash(enum) do
-    %{ "_embedded" => %{"item" => Enum.map(enum, &(Document.to_json_hash(&1)))} }
+    %{"_embedded" => %{"item" => Enum.map(enum, &Document.to_json_hash(&1))}}
   end
 
   defp expand_page(page) do
     {ExHal.follow_links(page, "item", fn _ -> [] end),
-      ExHal.follow_link(page, "next", pick_volunteer: true)}
+     ExHal.follow_link(page, "next", pick_volunteer: true)}
   end
 end

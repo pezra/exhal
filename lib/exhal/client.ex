@@ -16,7 +16,7 @@ defmodule ExHal.Client do
   @typedoc """
   Represents a client configuration/connection. Create with `new` function.
   """
-  @opaque t :: %__MODULE__{headers: Keyword.t, opts: [follow_redirect: boolean()]}
+  @opaque t :: %__MODULE__{}
   defstruct headers: [], opts: [follow_redirect: true]
 
   @typedoc """
@@ -30,16 +30,17 @@ defmodule ExHal.Client do
   @doc """
   Returns a new client.
   """
+  @spec new(Keyword.t(), Keyword.t()) :: __MODULE__.t()
   def new(headers, follow_redirect: follow) do
     %__MODULE__{headers: headers, opts: [follow_redirect: follow]}
   end
 
-  @spec new(Keyword.t) :: __MODULE__.t
+  @spec new(Keyword.t()) :: __MODULE__.t()
   def new(headers) do
     new(headers, follow_redirect: true)
   end
 
-  @spec new() :: __MODULE__.t
+  @spec new() :: __MODULE__.t()
   def new() do
     new([], follow_redirect: true)
   end
@@ -48,7 +49,7 @@ defmodule ExHal.Client do
   Returns client that will include the specified headers in any request
    made with it.
   """
-  @spec add_headers(__MODULE__.t, Keyword.t) :: __MODULE__.t
+  @spec add_headers(__MODULE__.t(), Keyword.t()) :: __MODULE__.t()
   def add_headers(client, headers) do
     updated_headers = merge_headers(client.headers, headers)
 
@@ -58,7 +59,7 @@ defmodule ExHal.Client do
   defmacrop log_req(method, url, do: block) do
     quote do
       {time, result} = :timer.tc(fn -> unquote(block) end)
-      @logger.debug "#{unquote(method)} <#{unquote(url)}> completed in #{div(time, 1000)}ms"
+      @logger.debug("#{unquote(method)} <#{unquote(url)}> completed in #{div(time, 1000)}ms")
       result
     end
   end
@@ -95,7 +96,7 @@ defmodule ExHal.Client do
 
   @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def patch(client, url, body, opts \\ []) do
-  {headers, poison_opts} = figure_headers_and_opt(opts, client)
+    {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
     log_req("PATCH", url) do
       HTTPoison.patch(url, body, headers, poison_opts)
@@ -108,7 +109,7 @@ defmodule ExHal.Client do
   defp figure_headers_and_opt(opts, client) do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])
 
-    headers     = merge_headers(client.headers, local_headers)
+    headers = merge_headers(client.headers, local_headers)
     poison_opts = merge_poison_opts(client.opts, local_opts)
 
     {headers, poison_opts}
@@ -116,7 +117,7 @@ defmodule ExHal.Client do
 
   defp merge_headers(old_headers, new_headers) do
     old_headers
-    |> Keyword.merge(new_headers, fn (_k,v1,v2) -> List.wrap(v1) ++ List.wrap(v2) end)
+    |> Keyword.merge(new_headers, fn _k, v1, v2 -> List.wrap(v1) ++ List.wrap(v2) end)
   end
 
   @default_poison_opts [follow_redirect: true]
@@ -128,8 +129,7 @@ defmodule ExHal.Client do
 
   defp extract_return(http_resp, client) do
     case http_resp do
-      {:error, err} -> {:error, %ExHal.Error{reason: err.reason} }
-
+      {:error, err} -> {:error, %ExHal.Error{reason: err.reason}}
       {:ok, resp} -> interpret_response(client, resp)
     end
   end
@@ -140,7 +140,7 @@ defmodule ExHal.Client do
 
     cond do
       Enum.member?(200..299, code) -> {:ok, doc, %ExHal.ResponseHeader{status_code: code}}
-      true ->  {:error, doc, %ExHal.ResponseHeader{status_code: code}}
+      true -> {:error, doc, %ExHal.ResponseHeader{status_code: code}}
     end
   end
 
@@ -150,5 +150,4 @@ defmodule ExHal.Client do
       {:error, _} -> NonHalResponse.from_httpoison_response(resp)
     end
   end
-
 end

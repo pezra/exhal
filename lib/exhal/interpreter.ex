@@ -1,45 +1,45 @@
 defmodule ExHal.Interpreter do
   @moduledoc """
-    Helps to build interpters of HAL documents.
+  Helps to build interpters of HAL documents.
 
-    Given a document like
+  Given a document like
 
-    ```json
-    {
-      "name": "Jane Doe",
-      "mailingAddress": "123 Main St",
-      "_links": {
-        "app:department": { "href": "http://example.com/dept/42" }
-      }
+  ```json
+  {
+    "name": "Jane Doe",
+    "mailingAddress": "123 Main St",
+    "_links": {
+      "app:department": { "href": "http://example.com/dept/42" }
     }
-    ```
+  }
+  ```
 
-    We can define an interpreter for it.
+  We can define an interpreter for it.
 
-    ```elixir
-    defmodule PersonInterpreter do
-      use ExHal.Interpreter
+  ```elixir
+  defmodule PersonInterpreter do
+    use ExHal.Interpreter
 
-      defextract :name
-      defextract :address, from: "mailingAddress"
-      defextractlink :department_url, rel: "app:department"
-    end
-    ```
+    defextract :name
+    defextract :address, from: "mailingAddress"
+    defextractlink :department_url, rel: "app:department"
+  end
+  ```
 
-    We can use this interpreter to to extract the pertinent parts of the document into a map.
+  We can use this interpreter to to extract the pertinent parts of the document into a map.
 
-    ```elixir
-    iex> PersonInterpreter.to_params(doc)
-    %{name: "Jane Doe",
-      address: "123 Main St",
-      department_url: "http://example.com/dept/42"}
-    ```
-    """
+  ```elixir
+  iex> PersonInterpreter.to_params(doc)
+  %{name: "Jane Doe",
+    address: "123 Main St",
+    department_url: "http://example.com/dept/42"}
+  ```
+  """
 
   defmacro __using__(_opts) do
     quote do
       import unquote(__MODULE__)
-      Module.register_attribute __MODULE__, :extractors, accumulate: true, persist: false
+      Module.register_attribute(__MODULE__, :extractors, accumulate: true, persist: false)
       @before_compile unquote(__MODULE__)
     end
   end
@@ -47,7 +47,7 @@ defmodule ExHal.Interpreter do
   defmacro __before_compile__(_env) do
     quote do
       def to_params(doc) do
-        Enum.reduce(@extractors, %{}, &(apply(__MODULE__, &1, [doc, &2])))
+        Enum.reduce(@extractors, %{}, &apply(__MODULE__, &1, [doc, &2]))
       end
     end
   end

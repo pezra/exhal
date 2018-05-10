@@ -13,14 +13,13 @@ defmodule ExHal.Navigation do
   """
   def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, strict: false, headers: []}) do
     opts = Map.new(opts)
-    pick_volunteer? = !(Map.get opts, :strict, false)
+    pick_volunteer? = !Map.get(opts, :strict, false)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
       {:error, e} -> {:error, e}
       {:ok, link} -> _follow_link(a_doc.client, link, tmpl_vars, opts)
     end
-
   end
 
   @doc """
@@ -29,7 +28,12 @@ defmodule ExHal.Navigation do
   Returns `[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:error, %ExHal.Error{...}, ...]`
   """
   def follow_links(a_doc, name, opts) when is_map(opts) or is_list(opts) do
-    follow_links(a_doc, name, fn _name -> [{:error, %Error{reason: "no such link: #{name}"}}] end, opts)
+    follow_links(
+      a_doc,
+      name,
+      fn _name -> [{:error, %Error{reason: "no such link: #{name}"}}] end,
+      opts
+    )
   end
 
   def follow_links(a_doc, name, missing_link_handler, opts \\ %{}) do
@@ -38,9 +42,8 @@ defmodule ExHal.Navigation do
 
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> missing_link_handler.(name)
-      links    -> Enum.map(links, &_follow_link(a_doc.client, &1, tmpl_vars, opts))
+      links -> Enum.map(links, &_follow_link(a_doc.client, &1, tmpl_vars, opts))
     end
-
   end
 
   def follow_links(a_doc, name) do
@@ -54,7 +57,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def post(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    pick_volunteer? = !(Map.get opts, :strict, true)
+    pick_volunteer? = !Map.get(opts, :strict, true)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
@@ -70,7 +73,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def put(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    pick_volunteer? = !(Map.get opts, :strict, true)
+    pick_volunteer? = !Map.get(opts, :strict, true)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
@@ -86,7 +89,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def patch(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    pick_volunteer? = !(Map.get opts, :strict, true)
+    pick_volunteer? = !Map.get(opts, :strict, true)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
@@ -96,41 +99,48 @@ defmodule ExHal.Navigation do
   end
 
   @doc """
-    Returns `{:ok, url}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
+  Returns `{:ok, url}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
 
-    * a_doc - `ExHal.Document` in which to search for links
-    * name - the rel of the link of interest
-    * opts
-      * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
-      * `:strict` - true if the existence of multiple matching links should cause a failure. Default: `false`
-    """
+  * a_doc - `ExHal.Document` in which to search for links
+  * name - the rel of the link of interest
+  * opts
+    * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
+    * `:strict` - true if the existence of multiple matching links should cause a failure. Default: `false`
+  """
   def link_target(a_doc, name, opts \\ %{}) do
     opts = Map.new(opts)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
-    strict?   = Map.get(opts, :strict, false)
+    strict? = Map.get(opts, :strict, false)
 
     case figure_link(a_doc, name, !strict?) do
       {:ok, link} -> find_link_target(link, tmpl_vars)
-      (r = _) -> r
+      r = _ -> r
     end
   end
 
   @doc """
-    Returns `{:ok, [url1, ...]}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
+  Returns `{:ok, [url1, ...]}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
 
-    * a_doc - `ExHal.Document` in which to search for links
-    * name - the rel of the link of interest
-    * opts
-      * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
-    """
+  * a_doc - `ExHal.Document` in which to search for links
+  * name - the rel of the link of interest
+  * opts
+    * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
+  """
   def link_targets(a_doc, name, opts \\ %{}) do
     opts = Map.new(opts)
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
+
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
-      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+      :missing ->
+        {:error, %Error{reason: "no such link: #{name}"}}
+
       links ->
-        {:ok, links
-        |> Enum.map(fn(link) -> {:ok, target} = find_link_target(link, tmpl_vars); target end)}
+        {:ok,
+         links
+         |> Enum.map(fn link ->
+           {:ok, target} = find_link_target(link, tmpl_vars)
+           target
+         end)}
     end
   end
 
@@ -159,15 +169,18 @@ defmodule ExHal.Navigation do
 
   defp figure_link(a_doc, name, pick_volunteer?) do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
-      :missing -> {:error, %Error{reason: "no such link: #{name}"}}
+      :missing ->
+        {:error, %Error{reason: "no such link: #{name}"}}
 
-      (ls = [_|[_|_]]) -> if pick_volunteer? do
-                             {:ok, List.first(ls)}
-                           else
-                             {:error, %Error{reason: "multiple choices"}}
-                           end
+      ls = [_ | [_ | _]] ->
+        if pick_volunteer? do
+          {:ok, List.first(ls)}
+        else
+          {:error, %Error{reason: "multiple choices"}}
+        end
 
-      [l] -> {:ok, l}
+      [l] ->
+        {:ok, l}
     end
   end
 
@@ -175,6 +188,7 @@ defmodule ExHal.Navigation do
     cond do
       Link.embedded?(link) ->
         {:ok, link.target, %ResponseHeader{status_code: 200}}
+
       :else ->
         @client_module.get(client, Link.target_url!(link, tmpl_vars), opts)
     end
