@@ -24,12 +24,14 @@ defmodule ExHal.Mixfile do
       {:uri_template, "~> 1.0"},
       {:httpoison, "~> 0.11 or ~> 1.0"},
       {:odgn_json_pointer, "~> 1.0.0", app: false},
+      {:expat, "~> 1.0"},
       {:earmark, ">= 0.0.0", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
       {:dialyxir, "~> 0.3", only: :dev, runtime: false},
       {:exvcr, "~> 0.7", only: :test},
       {:excoveralls, "~> 0.4", only: :test},
-      {:mox, "~> 0.3", only: :test}
+      {:mox, "~> 0.3", only: :test},
+      {:stream_data, "~> 0.1", only: :test}
     ]
     |> dep_version_overrides
   end

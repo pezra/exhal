@@ -69,7 +69,7 @@ defmodule ExHal.Document do
     }
   end
 
-  def from_parsed_hal(client, parsed_hal), do: from_parsed_hal(parsed_hal, client)
+  def from_parsed_hal(client = %ExHal.Client{}, parsed_hal), do: from_parsed_hal(parsed_hal, client)
 
   @doc """
   Returns true iff the document contains at least one link with the specified rel.
@@ -221,10 +221,35 @@ defmodule ExHal.Document do
 
   defp links_in(client, parsed_json) do
     namespaces = NsReg.from_parsed_json(parsed_json)
-    raw_links = simple_links_in(parsed_json) ++ embedded_links_in(client, parsed_json)
-    links = expand_curies(raw_links, namespaces)
+    embedded_links = embedded_links_in(client, parsed_json)
+
+    links = simple_links_in(parsed_json)
+    |> augment_simple_links_with_embedded_reprs(embedded_links)
+    |> backfill_missing_links(embedded_links)
+    |> expand_curies(namespaces)
 
     Enum.group_by(links, fn a_link -> a_link.rel end)
+  end
+
+  defp augment_simple_links_with_embedded_reprs(links, embedded_links) do
+    links
+    |> Enum.map(fn link ->
+      case Enum.find(embedded_links, &(Link.equal?(&1, link))) do
+        nil -> link
+        embedded -> %{link | target: embedded.target}
+      end
+    end)
+  end
+
+
+  defp backfill_missing_links(links, embedded_links) do
+    embedded_links
+    |> Enum.reduce(links, fn embedded, links ->
+      case Enum.any?(links, &(Link.equal?(embedded, &1))) do
+        false -> [embedded | links]
+        _ -> links
+      end
+    end)
   end
 
   defp simple_links_in(parsed_json) do

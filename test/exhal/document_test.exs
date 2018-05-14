@@ -176,7 +176,7 @@ defmodule ExHal.DocumentTest do
     end
   end
 
-  defmodule DocWithWithDuplicateLinks do
+  defmodule DocWithWithRepeatedLinks do
     use ExUnit.Case, async: true
     defp doc, do: Document.parse! ExHal.client, ~s({"_links": {
                                      "item": [
@@ -187,6 +187,30 @@ defmodule ExHal.DocumentTest do
 
     test "links can be fetched" do
       assert {:ok, [_, _] } = Document.fetch(doc(), "item")
+    end
+  end
+
+  defmodule DocWithWithDuplicateLinksAndEmbedded do
+    use ExUnit.Case, async: true
+    defp doc, do: Document.parse! ExHal.client, ~s(
+          { "_links": {
+              "item": [
+                {"href": "http://example.com/1"}
+              ]
+            },
+            "_embedded": {
+              "item": {
+                "name": "Peter",
+                "_links": {
+                  "self": { "href": "http://example.com/1"}
+                }
+              }
+            }
+          }
+        )
+
+    test "links can be fetched" do
+      assert 1 == Document.fetch(doc(), "item") |> elem(1) |>  Enum.count()
     end
   end
 
