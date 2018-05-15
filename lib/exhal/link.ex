@@ -4,8 +4,20 @@ defmodule ExHal.Link do
     are found in the `_links` and `_embedded` sections of a HAL document
   """
 
-  alias ExHal.{Document, NsReg}
+  use Expat
 
+  alias ExHal.{Document, NsReg, Trinary, PriestLogic}
+
+  @typedoc """
+  A link. Links may be simple or dereferenced (from the embedded section).
+  """
+  @type t :: %__MODULE__{
+    rel: String.t(),
+    href: String.t(),
+    templated: boolean(),
+    name: String.t(),
+    target: Document.t()
+  }
   defstruct [:rel, :href, :templated, :name, :target]
 
   @doc """
@@ -90,6 +102,40 @@ defmodule ExHal.Link do
       |> add_name(link)
     end
   end
+
+  defpat simple_link(%{target: nil})
+  defpat unnamed_link(%{name: nil})
+  defpat embedded_link(%{target: %{}})
+
+  @doc """
+  Returns true if the links are equivalent.
+
+  Comparison rules:
+   - simple links are equal if their hrefs are equal and their names are equal.
+   - embedded links are equal if their hrefs are non-nil and equal
+   - a simple and an embedded link are equal if their hrefs are equal
+  """
+  @spec equal?(__MODULE__.t(), __MODULE__.t()) :: boolean()
+  def equal?(%{href: nil}, _), do: false
+  def equal?(_, %{href: nil}), do: false
+  def equal?(link_a = simple_link(), link_b = simple_link())  do
+    link_a.rel == link_b.rel
+    && link_a.href == link_b.href
+      && link_a.name == link_b.name
+  end
+  def equal?(link_a = embedded_link(), link_b = embedded_link()) do
+    # both embedded and href's are comparable
+    link_a.rel == link_b.rel
+    && link_a.href == link_b.href
+  end
+  def equal?(link_a = simple_link(), link_b = embedded_link()), do: equal?(link_b, link_a)
+  def equal?(link_a = embedded_link(), link_b = simple_link()) do
+    # both embedded and href's are comparable
+    link_a.rel == link_b.rel
+    && link_a.href == link_b.href
+  end
+
+  # private functions
 
   defp add_templated(json_map, %{templated: true}) do
     Map.merge(json_map, %{"templated" => true})

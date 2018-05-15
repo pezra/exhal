@@ -73,11 +73,59 @@ defmodule ExHal.LinkTest do
     assert false == Link.embedded?(%Link{href: "https://aa/resource"})
   end
 
+  describe ".equal?/2" do
+    test "simple links identical unnamed" do
+      link = normal_link("http://example.com/", nil)
+      assert Link.equal?(link, link)
+    end
 
-  def normal_link(url \\ "http://example.com/") do
+    test "simple links diff hrefs" do
+      refute Link.equal?(normal_link("abc"), normal_link("xyz"))
+    end
+
+    test "simple links diff names" do
+      refute Link.equal?(normal_link("abc", "first"), normal_link("abc", "second"))
+    end
+
+    test "embedded links identical unnamed" do
+      link = embedded_link("http://example.com/")
+      assert Link.equal?(link, link)
+    end
+
+    test "embedded links diff hrefs" do
+      refute Link.equal?(embedded_link("abc"), embedded_link("xyz"))
+    end
+
+    test "embedded links anonymous" do
+      refute Link.equal?(embedded_link(nil), embedded_link(nil))
+    end
+
+    test "embedded links anonymous vs regular" do
+      refute Link.equal?(embedded_link(nil), embedded_link())
+      refute Link.equal?(embedded_link(), embedded_link(nil))
+    end
+
+    test "mixed links equal" do
+      assert Link.equal?(embedded_link("http://example.com/"),
+                         normal_link("http://example.com/"))
+      assert Link.equal?(normal_link("http://example.com/"),
+                         embedded_link("http://example.com/"))
+    end
+
+    test "mixed links anon" do
+      refute Link.equal?(embedded_link(nil),
+                         normal_link("http://example.com/"))
+      refute Link.equal?(normal_link("http://example.com/"),
+                         embedded_link(nil))
+    end
+
+  end
+
+
+  def normal_link(url \\ "http://example.com/", name \\ "test") do
     link_entry = %{"href" => url,
                    "templated" => false,
-                   "name" => "test"}
+                   "name" => name}
     Link.from_links_entry("foo", link_entry)
   end
 
@@ -88,13 +136,13 @@ defmodule ExHal.LinkTest do
     Link.from_links_entry("foo", link_entry)
   end
 
-  def embedded_link(client, url \\ "http://example.com/embedded") do
+  def embedded_link(url \\ "http://example.com/embedded", client \\ nil) do
     parsed_hal = %{"name" => url,
                    "_links" =>
                      %{ "self" => %{ "href" => url }
                       }
                   }
-    target_doc = Document.from_parsed_hal(client, parsed_hal)
+    target_doc = Document.from_parsed_hal(parsed_hal)
 
     Link.from_embedded("foo", target_doc)
   end
