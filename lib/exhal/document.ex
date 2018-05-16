@@ -194,7 +194,7 @@ defmodule ExHal.Document do
       doc.links
       |> Map.to_list()
       |> Enum.flat_map(fn {_, v} -> v end)
-      |> Enum.partition(&Link.embedded?(&1))
+      |> Enum.split_with(&Link.embedded?(&1))
 
     %{"_embedded" => render_links(embedded), "_links" => render_links(references)}
   end
