@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Release do
   @shortdoc "Release the hounds!"
 
   use Mix.Task
-  alias Mix.Hex.Build
+  alias Mix.Tasks.Hex.Build
 
   def run(_) do
     meta = Build.prepare_package()[:meta]
