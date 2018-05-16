@@ -6,7 +6,7 @@ defmodule ExHal.Link do
 
   use Expat
 
-  alias ExHal.{Document, NsReg, Trinary, PriestLogic}
+  alias ExHal.{Document, NsReg}
 
   @typedoc """
   A link. Links may be simple or dereferenced (from the embedded section).

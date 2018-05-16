@@ -136,7 +136,7 @@ defmodule ExHal.LinkTest do
     Link.from_links_entry("foo", link_entry)
   end
 
-  def embedded_link(url \\ "http://example.com/embedded", client \\ nil) do
+  def embedded_link(url \\ "http://example.com/embedded") do
     parsed_hal = %{"name" => url,
                    "_links" =>
                      %{ "self" => %{ "href" => url }
