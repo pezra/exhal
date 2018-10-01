@@ -8,7 +8,7 @@ defmodule ExHal.SimpleAuthorizer do
 
   defstruct([:authorization, :url_prefix])
 
-  @spec new(Authorizer.url(), Authorizer.authorization_field_value()) :: __MODULE__.t()
+  @spec new(Authorizer.url(), Authorizer.credentials()) :: __MODULE__.t()
   def new(url_prefix, authorization_str),
     do: %__MODULE__{authorization: authorization_str, url_prefix: url_prefix}
 end
