@@ -140,6 +140,43 @@ iex> Stream.map(collection, fn follow_results ->
 ["http://example.com/beginning", "http://example.com/middle", "http://example.com/end"]
 ```
 
+### Authorization
+
+The `Authorization` header field is automatically populated using the "authorizer" specified on the client. Currently, the only implemented authorizer is `ExHal.SimpleAuthorizer`. This authorizer returns the specified `Authorization` header field value for any resource with a specified URL prefix.
+
+```elixir
+iex> token = fetch_api_token()
+iex> authorizer = ExHal.SimpleAuthorizer.new("http://example.com/", "Bearer #{token}")
+iex> client = ExHal.client()
+...> |> ExHal.Client.set_authorizer(authorizer)
+iex> ExHal.get("http://example.com/entrypoint") # request will included `Authorization: Bearer ...` request header
+%ExHal.Document{...}
+```
+
+You can implement your own authorizer if you want. Simply implement `ExHal.Authorizer` protocol.
+
+```elixir
+iex> defmodule MyAuth do
+...>   defstruct([:p])
+...>   def connect() do
+...>     pid = start_token_management_process()
+...>     %MyAuth{p: pid}
+...>   end
+...> end
+iex> defimpl ExHal.Authorizer, for: MyAuth do
+...>  def authorization(authorizer, url) do
+...>    t = GenServer.call(authorizer.p, :get_token)
+...>    {:ok, "Bearer #{t}"}
+...>  end
+...> end
+...>
+iex> authorizer = MyAuth.connect
+iex> client = ExHal.client()
+...> |> ExHal.Client.set_authorizer(authorizer)
+iex> ExHal.get("http://example.com/entrypoint") # request will included `Authorization: Bearer ...` request header with a token fetched from the token management process.
+%ExHal.Document{...}
+```
+
 ### Serialization
 
 Collections and Document can render themselves to a json-like
