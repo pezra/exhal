@@ -35,16 +35,16 @@ defmodule ExHal.Client do
   """
   @opaque t :: %__MODULE__{}
   defstruct authorizer: NullAuthorizer.new(),
-    headers: %{},
-    opts: [follow_redirect: true]
+            headers: %{},
+            opts: [follow_redirect: true]
 
   @typedoc """
   The return value of any function that makes an HTTP request.
   """
   @type http_response ::
-  {:ok, Document.t | NonHalResponse.t, ResponseHeader.t}
-  | {:error, Document.t | NonHalResponse.t, ResponseHeader.t }
-  | {:error, Error.t}
+          {:ok, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
+          | {:error, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
+          | {:error, Error.t()}
 
   @doc """
   Returns a new client.
@@ -52,9 +52,12 @@ defmodule ExHal.Client do
   @spec new() :: t
   def new(), do: %__MODULE__{}
 
-  @spec new(Keyword.t) :: t
-  def new(headers: headers), do: %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: true]}
+  @spec new(Keyword.t()) :: t
+  def new(headers: headers),
+    do: %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: true]}
+
   def new(follow_redirect: follow), do: %__MODULE__{opts: [follow_redirect: follow]}
+
   def new(headers: headers, follow_redirect: follow),
     do: %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: follow]}
 
@@ -63,7 +66,7 @@ defmodule ExHal.Client do
     %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: true]}
   end
 
-  @spec new(Keyword.t, Keyword.t) :: t
+  @spec new(Keyword.t(), Keyword.t()) :: t
   def new(headers, follow_redirect: follow) do
     new(headers: headers, follow_redirect: follow)
   end
@@ -72,7 +75,7 @@ defmodule ExHal.Client do
   Returns client that will include the specified headers in any request
    made with it.
   """
-  @spec add_headers(t, Keyword.t) :: t
+  @spec add_headers(t, Keyword.t()) :: t
   def add_headers(client, headers) do
     updated_headers = merge_headers(client.headers, normalize_headers(headers))
 
@@ -82,7 +85,7 @@ defmodule ExHal.Client do
   @doc """
   Returns a client that will authorize requests using the specified authorizer.
   """
-  @spec set_authorizer(t, Authorizer.t) :: t
+  @spec set_authorizer(t, Authorizer.t()) :: t
   def set_authorizer(client, new_authorizer) do
     %__MODULE__{client | authorizer: new_authorizer}
   end
@@ -95,7 +98,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback get(__MODULE__.t, String.t, Keyword.t) :: http_response()
+  @callback get(__MODULE__.t(), String.t(), Keyword.t()) :: http_response()
   def get(client, url, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
@@ -105,7 +108,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback post(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
+  @callback post(__MODULE__.t(), String.t(), <<>>, Keyword.t()) :: http_response()
   def post(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
@@ -115,7 +118,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback put(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
+  @callback put(__MODULE__.t(), String.t(), <<>>, Keyword.t()) :: http_response()
   def put(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
@@ -125,7 +128,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
+  @callback patch(__MODULE__.t(), String.t(), <<>>, Keyword.t()) :: http_response()
   def patch(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
@@ -140,9 +143,10 @@ defmodule ExHal.Client do
   defp figure_headers_and_opt(opts, client, url) do
     {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, %{})
 
-    headers = client.headers
-    |> merge_headers(normalize_headers(local_headers))
-    |> merge_headers(auth_headers(client, url))
+    headers =
+      client.headers
+      |> merge_headers(normalize_headers(local_headers))
+      |> merge_headers(auth_headers(client, url))
 
     poison_opts = merge_poison_opts(client.opts, local_opts)
 
@@ -185,7 +189,7 @@ defmodule ExHal.Client do
   end
 
   defp normalize_headers(headers) do
-    Enum.into(headers, %{}, fn {k,v} -> {to_string(k), v} end)
+    Enum.into(headers, %{}, fn {k, v} -> {to_string(k), v} end)
   end
 
   defp auth_headers(client, url) do

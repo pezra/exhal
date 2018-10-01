@@ -12,12 +12,12 @@ defmodule ExHal.Link do
   A link. Links may be simple or dereferenced (from the embedded section).
   """
   @type t :: %__MODULE__{
-    rel: String.t(),
-    href: String.t(),
-    templated: boolean(),
-    name: String.t(),
-    target: Document.t()
-  }
+          rel: String.t(),
+          href: String.t(),
+          templated: boolean(),
+          name: String.t(),
+          target: Document.t()
+        }
   defstruct [:rel, :href, :templated, :name, :target]
 
   @doc """
@@ -103,9 +103,9 @@ defmodule ExHal.Link do
     end
   end
 
-  defpat simple_link(%{target: nil})
-  defpat unnamed_link(%{name: nil})
-  defpat embedded_link(%{target: %{}})
+  defpat(simple_link(%{target: nil}))
+  defpat(unnamed_link(%{name: nil}))
+  defpat(embedded_link(%{target: %{}}))
 
   @doc """
   Returns true if the links are equivalent.
@@ -118,21 +118,21 @@ defmodule ExHal.Link do
   @spec equal?(__MODULE__.t(), __MODULE__.t()) :: boolean()
   def equal?(%{href: nil}, _), do: false
   def equal?(_, %{href: nil}), do: false
-  def equal?(link_a = simple_link(), link_b = simple_link())  do
-    link_a.rel == link_b.rel
-    && link_a.href == link_b.href
-      && link_a.name == link_b.name
+
+  def equal?(link_a = simple_link(), link_b = simple_link()) do
+    link_a.rel == link_b.rel && link_a.href == link_b.href && link_a.name == link_b.name
   end
+
   def equal?(link_a = embedded_link(), link_b = embedded_link()) do
     # both embedded and href's are comparable
-    link_a.rel == link_b.rel
-    && link_a.href == link_b.href
+    link_a.rel == link_b.rel && link_a.href == link_b.href
   end
+
   def equal?(link_a = simple_link(), link_b = embedded_link()), do: equal?(link_b, link_a)
+
   def equal?(link_a = embedded_link(), link_b = simple_link()) do
     # both embedded and href's are comparable
-    link_a.rel == link_b.rel
-    && link_a.href == link_b.href
+    link_a.rel == link_b.rel && link_a.href == link_b.href
   end
 
   # private functions

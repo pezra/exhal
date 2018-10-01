@@ -8,16 +8,21 @@ defmodule ExHal.SimpleAuthorizerTest do
 
   describe ".authorization/2" do
     test "alien resource" do
-      assert :no_auth = Authorizer.authorization(simple_authorizer_factory(), "http://malware.com")
+      assert :no_auth =
+               Authorizer.authorization(simple_authorizer_factory(), "http://malware.com")
     end
 
     test "subtly alien resource" do
-      assert :no_auth = Authorizer.authorization(simple_authorizer_factory(), "http://mallory.example.com")
+      assert :no_auth =
+               Authorizer.authorization(simple_authorizer_factory(), "http://mallory.example.com")
     end
 
     test "recognized resource" do
       assert {:ok, "Bearer hello-beautiful"} =
-        Authorizer.authorization(simple_authorizer_factory("Bearer hello-beautiful"), "http://example.com/foo")
+               Authorizer.authorization(
+                 simple_authorizer_factory("Bearer hello-beautiful"),
+                 "http://example.com/foo"
+               )
     end
   end
 
