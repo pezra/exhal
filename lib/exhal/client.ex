@@ -25,16 +25,17 @@ defmodule ExHal.Client do
   """
 
   require Logger
-  alias ExHal.{Document, NonHalResponse, ResponseHeader, NullAuthorizer}
+  alias ExHal.{Document, NonHalResponse, ResponseHeader, Authorizer, NullAuthorizer}
 
   @logger Application.get_env(:exhal, :logger, Logger)
+  @http_client Application.get_env(:exhal, :http_client, HTTPoison)
 
   @typedoc """
   Represents a client configuration/connection. Create with `new` function.
   """
   @opaque t :: %__MODULE__{}
   defstruct authorizer: NullAuthorizer.new(),
-    headers: [],
+    headers: %{},
     opts: [follow_redirect: true]
 
   @typedoc """
@@ -52,13 +53,14 @@ defmodule ExHal.Client do
   def new(), do: %__MODULE__{}
 
   @spec new(Keyword.t) :: t
-  def new(headers: headers), do: %__MODULE__{headers: headers, opts: [follow_redirect: true]}
-  def new(follow_redirect: follow), do: %__MODULE__{headers: [], opts: [follow_redirect: follow]}
-  def new(headers: headers, follow_redirect: follow), do: %__MODULE__{headers: headers, opts: [follow_redirect: follow]}
+  def new(headers: headers), do: %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: true]}
+  def new(follow_redirect: follow), do: %__MODULE__{opts: [follow_redirect: follow]}
+  def new(headers: headers, follow_redirect: follow),
+    do: %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: follow]}
 
   # deprecated call patterns
-  def new(headers) do
-    %__MODULE__{headers: headers, opts: [follow_redirect: true]}
+  def new(headers) when is_list(headers) do
+    %__MODULE__{headers: normalize_headers(headers), opts: [follow_redirect: true]}
   end
 
   @spec new(Keyword.t, Keyword.t) :: t
@@ -72,7 +74,7 @@ defmodule ExHal.Client do
   """
   @spec add_headers(t, Keyword.t) :: t
   def add_headers(client, headers) do
-    updated_headers = merge_headers(client.headers, headers)
+    updated_headers = merge_headers(client.headers, normalize_headers(headers))
 
     %__MODULE__{client | headers: updated_headers}
   end
@@ -95,58 +97,60 @@ defmodule ExHal.Client do
 
   @callback get(__MODULE__.t, String.t, Keyword.t) :: http_response()
   def get(client, url, opts \\ []) do
-    {headers, poison_opts} = figure_headers_and_opt(opts, client)
+    {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
     log_req("GET", url) do
-      HTTPoison.get(url, headers, poison_opts)
+      @http_client.get(url, headers, poison_opts)
       |> extract_return(client)
     end
   end
 
   @callback post(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def post(client, url, body, opts \\ []) do
-    {headers, poison_opts} = figure_headers_and_opt(opts, client)
+    {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
     log_req("POST", url) do
-      HTTPoison.post(url, body, headers, poison_opts)
+      @http_client.post(url, body, headers, poison_opts)
       |> extract_return(client)
     end
   end
 
   @callback put(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def put(client, url, body, opts \\ []) do
-    {headers, poison_opts} = figure_headers_and_opt(opts, client)
+    {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
     log_req("PUT", url) do
-      HTTPoison.put(url, body, headers, poison_opts)
+      @http_client.put(url, body, headers, poison_opts)
       |> extract_return(client)
     end
   end
 
   @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
   def patch(client, url, body, opts \\ []) do
-    {headers, poison_opts} = figure_headers_and_opt(opts, client)
+    {headers, poison_opts} = figure_headers_and_opt(opts, client, url)
 
     log_req("PATCH", url) do
-      HTTPoison.patch(url, body, headers, poison_opts)
+      @http_client.patch(url, body, headers, poison_opts)
       |> extract_return(client)
     end
   end
 
   # Private functions
 
-  defp figure_headers_and_opt(opts, client) do
-    {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, [])
+  defp figure_headers_and_opt(opts, client, url) do
+    {local_headers, local_opts} = Keyword.pop(Keyword.new(opts), :headers, %{})
 
-    headers = merge_headers(client.headers, local_headers)
+    headers = client.headers
+    |> merge_headers(normalize_headers(local_headers))
+    |> merge_headers(auth_headers(client, url))
+
     poison_opts = merge_poison_opts(client.opts, local_opts)
 
     {headers, poison_opts}
   end
 
   defp merge_headers(old_headers, new_headers) do
-    old_headers
-    |> Keyword.merge(new_headers, fn _k, v1, v2 -> List.wrap(v1) ++ List.wrap(v2) end)
+    Map.merge(old_headers, new_headers, fn _k, v1, v2 -> List.wrap(v1) ++ List.wrap(v2) end)
   end
 
   @default_poison_opts [follow_redirect: true]
@@ -177,6 +181,17 @@ defmodule ExHal.Client do
     case Document.parse(client, resp.body) do
       {:ok, doc} -> doc
       {:error, _} -> NonHalResponse.from_httpoison_response(resp)
+    end
+  end
+
+  defp normalize_headers(headers) do
+    Enum.into(headers, %{}, fn {k,v} -> {to_string(k), v} end)
+  end
+
+  defp auth_headers(client, url) do
+    case Authorizer.authorization(client.authorizer, url) do
+      :no_auth -> %{}
+      {:ok, auth} -> %{"Authorization" => auth}
     end
   end
 end

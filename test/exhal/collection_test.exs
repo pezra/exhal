@@ -1,8 +1,7 @@
-Code.require_file "../support/request_stubbing.exs", __DIR__
-
 defmodule ExHal.CollectionTest do
   use ExUnit.Case, async: true
-  use RequestStubbing
+  import Mox
+  setup :verify_on_exit!
 
   alias ExHal.Document
   alias ExHal.Collection
@@ -67,13 +66,16 @@ defmodule ExHal.CollectionTest do
   } do
     subject = Collection.to_stream(multi_page_collection_doc)
 
-    stub_request "get", url: last_page_collection_url, resp_body: last_page_collection_hal_str do
-      assert 3 == Enum.count(subject)
-      assert Enum.all? subject, fn x -> {:ok, _, %ResponseHeader{}} = x end
-      assert Enum.any? subject, has_doc_with_name("first")
-      assert Enum.any? subject, has_doc_with_name("second")
-      assert Enum.any? subject, has_doc_with_name("last")
-    end
+    ExHal.ClientMock
+    |> stub(:get, fn _client, ^last_page_collection_url, _headers ->
+      {:ok, Document.parse!(last_page_collection_hal_str), %ResponseHeader{status_code: 200}}
+    end)
+
+    assert 3 == Enum.count(subject)
+    assert Enum.all? subject, fn x -> {:ok, _, %ResponseHeader{}} = x end
+    assert Enum.any? subject, has_doc_with_name("first")
+    assert Enum.any? subject, has_doc_with_name("second")
+    assert Enum.any? subject, has_doc_with_name("last")
   end
 
   test "ExHal.to_stream(sinlge_page_collection_doc) works", ctx do
@@ -132,7 +134,8 @@ defmodule ExHal.CollectionTest do
                                    ]
                                  },
                                "_links" =>
-                                 %{"next" => %{"href" => "http://example.com/?p=2"}
+                                 %{"next" => %{"href" => "http://example.com/?p=2"},
+                                   "self" => %{"href" => "http://example.com/?p=1"}
                                   }
                               })
   end

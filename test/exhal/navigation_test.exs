@@ -1,63 +1,68 @@
-Code.require_file "../support/request_stubbing.exs", __DIR__
-
 defmodule ExHal.NavigationTest do
   use ExUnit.Case, async: false
-  use RequestStubbing
+  import Mox
 
   alias ExHal.{Navigation,Document,Error,ResponseHeader}
 
-  test ".follow_link", %{doc: doc} do
-    thing_hal = hal_str("http://example.com/thing")
+  describe ".follow_link" do
+    test "regular link", %{doc: doc} do
+      ExHal.ClientMock
+      |> expect(:get, fn _client,"http://example.com/", _headers ->
+        {:ok, Document.parse!(hal_str("http://example.com/thing")), %ResponseHeader{status_code: 200}}
+      end)
 
-    stub_request "get", url: "http://example.com/", resp_body: thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Navigation.follow_link(doc, "single")
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Navigation.follow_link(doc, "single")
 
-      assert {:ok, "http://example.com/thing"} = ExHal.url(target)
+      assert {:ok, "http://example.com/thing"} = ExHal.url(repr)
     end
 
-    assert {:ok, (target = %Document{}), %ResponseHeader{}} =
-      Navigation.follow_link(doc, "embedded")
+    test "embedded link", %{doc: doc} do
+      assert {:ok, (repr = %Document{}), %ResponseHeader{}} = Navigation.follow_link(doc, "embedded")
 
-    assert {:ok, "http://example.com/e"} = ExHal.url(target)
-  end
-
-  test ".post", %{doc: doc} do
-    new_thing_hal = hal_str("http://example.com/new-thing")
-
-    stub_request "post", url: "http://example.com/",
-                         req_body: "post body",
-                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Navigation.post(doc, "single", "post body")
-
-      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      assert {:ok, "http://example.com/e"} = ExHal.url(repr)
     end
   end
 
-  test ".put", %{doc: doc} do
-    new_thing_hal = hal_str("http://example.com/new-thing")
+  describe ".post" do
+    test "regular link", %{doc: doc} do
+      new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "put", url: "http://example.com/",
-                        req_body: "put body",
-                        resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Navigation.put(doc, "single", "put body")
+      ExHal.ClientMock
+      |> expect(:post, fn _client, "http://example.com/", "post body", _headers ->
+        {:ok, Document.parse!(new_thing_hal), %ResponseHeader{status_code: 200}}
+      end)
 
-      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Navigation.post(doc, "single", "post body")
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
     end
   end
 
-  test ".patch", %{doc: doc} do
-    new_thing_hal = hal_str("http://example.com/new-thing")
+  describe ".put" do
+    test "regular link", %{doc: doc} do
+      new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "patch", url: "http://example.com/",
-                        req_body: "patch body",
-                        resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Navigation.patch(doc, "single", "patch body")
+      ExHal.ClientMock
+      |> expect(:put, fn _client, "http://example.com/", "put body", _headers ->
+        {:ok, Document.parse!(new_thing_hal), %ResponseHeader{status_code: 200}}
+      end)
 
-      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Navigation.put(doc, "single", "put body")
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
+    end
+  end
+
+  describe ".patch" do
+    test "regular link", %{doc: doc} do
+      new_thing_hal = hal_str("http://example.com/new-thing")
+
+      ExHal.ClientMock
+      |> expect(:patch, fn _client, "http://example.com/", "patch body", _headers ->
+        {:ok, Document.parse!(new_thing_hal), %ResponseHeader{status_code: 200}}
+      end)
+
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Navigation.patch(doc, "single", "patch body")
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
+      
     end
   end
 

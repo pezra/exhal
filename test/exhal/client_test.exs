@@ -1,5 +1,3 @@
-Code.require_file "../support/request_stubbing.exs", __DIR__
-
 defmodule ExHal.ClientTest do
   use ExUnit.Case, async: true
 
@@ -15,12 +13,12 @@ defmodule ExHal.ClientTest do
     end
 
     test "(headers)" do
-      assert %Client{headers: ["User-Agent": "test agent", "X-Whatever": "example"]} =
+      assert %Client{headers: %{"User-Agent" => "test agent", "X-Whatever"  => "example"}} =
         Client.new("User-Agent": "test agent", "X-Whatever": "example")
     end
 
     test "(headers, follow_redirect: follow)" do
-      assert %Client{headers: ["User-Agent": "test agent"], opts: [follow_redirect: false]} =
+      assert %Client{headers: %{"User-Agent" => "test agent"}, opts: [follow_redirect: false]} =
         Client.new(["User-Agent": "test agent"], follow_redirect: false)
     end
   end
@@ -56,8 +54,7 @@ defmodule ExHal.ClientTest do
   # background
 
   defp to_have_header(client, expected_name, expected_value) do
-    expected_name = String.to_atom(expected_name)
-    {:ok, actual_value} = Keyword.fetch(client.headers, expected_name)
+    {:ok, actual_value} = Map.fetch(client.headers, expected_name)
 
     actual_value == expected_value
   end
@@ -65,67 +62,133 @@ end
 
 defmodule ExHal.ClientHttpRequestTest do
   use ExUnit.Case, async: false
-  use RequestStubbing
+  import Mox
 
-  alias ExHal.{Client, Document, NonHalResponse, ResponseHeader}
+  # Make sure mocks are verified when the test exits
+  setup :verify_on_exit!
 
-  test ".get w/ normal link", %{client: client} do
-    thing_hal = hal_str("http://example.com/thing")
+  alias ExHal.{Client, Document, NonHalResponse, ResponseHeader, SimpleAuthorizer}
 
-    stub_request "get", url: "http://example.com/", resp_body: thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.get(client, "http://example.com/")
+  describe ".get/2" do
+    test "w/ normal link", %{client: client} do
+      ExHal.HttpClientMock
+      |> expect(:get, fn "http://example.com/", _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: hal_str("http://example.com/thing"), status_code: 200}}
+      end)
 
-      assert {:ok, "http://example.com/thing"} = ExHal.url(target)
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Client.get(client, "http://example.com/")
+      assert {:ok, "http://example.com/thing"} = ExHal.url(repr)
+    end
+
+    test "w/ auth" do
+      client = Client.new() |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+
+      ExHal.HttpClientMock
+      |> expect(:get, fn _url, %{"Authorization" => "Bearer sometoken"}, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: "{}", status_code: 200}}
+      end)
+
+      Client.get(client, "http://example.com/thing")
     end
   end
 
-  test ".post w/ normal link", %{client: client} do
-    new_thing_hal = hal_str("http://example.com/new-thing")
+  describe ".post" do
+    test "w/ normal link", %{client: client} do
+      new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "post", url: "http://example.com/",
-                         req_body: new_thing_hal,
-                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.post(client, "http://example.com/", new_thing_hal)
+      ExHal.HttpClientMock
+      |> expect(:post, fn "http://example.com/", new_thing_hal, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: new_thing_hal, status_code: 200}}
+      end)
 
-      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Client.post(client, "http://example.com/", new_thing_hal)
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
     end
-  end
 
-  test ".post with empty response", %{client: client} do
-    stub_request "post", url: "http://example.com/",
-                         req_body: "post body",
-                         resp_body: "" do
-      assert {:ok, %NonHalResponse{}, %ResponseHeader{status_code: 200}} =
+    test "w/ empty response", %{client: client} do
+      ExHal.HttpClientMock
+      |> expect(:post, fn "http://example.com/", _body , _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: "", status_code: 204}}
+      end)
+
+      assert {:ok, %NonHalResponse{}, %ResponseHeader{status_code: 204}} =
         Client.post(client, "http://example.com/", "post body")
     end
-  end
 
-  test ".put w/ normal link", %{client: client} do
-    new_thing_hal = hal_str("http://example.com/new-thing")
+    test "w/ auth" do
+      client = Client.new() |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
 
-    stub_request "put", url: "http://example.com/",
-                        req_body: "the request body",
-                        resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.put(client, "http://example.com/", "the request body")
+      ExHal.HttpClientMock
+      |> expect(:post, fn _url, _body, %{"Authorization" => "Bearer sometoken"}, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: "{}", status_code: 200}}
+      end)
 
-      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      Client.post(client, "http://example.com/thing", "post body")
     end
   end
 
-  test ".patch w/ normal link", %{client: client} do
-    new_thing_hal = hal_str("http://example.com/new-thing")
+  describe ".put" do
+    test "w/ normal link", %{client: client} do
+      new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "patch", url: "http://example.com/",
-                        req_body: "the request body",
-                        resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.patch(client, "http://example.com/", "the request body")
+            ExHal.HttpClientMock
+      |> expect(:put, fn "http://example.com/", new_thing_hal, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: new_thing_hal, status_code: 200}}
+      end)
 
-      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Client.put(client, "http://example.com/", new_thing_hal)
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
     end
+
+    test "w/ auth" do
+      client = Client.new() |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+
+      ExHal.HttpClientMock
+      |> expect(:put, fn _url, _body, %{"Authorization" => "Bearer sometoken"}, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: "{}", status_code: 200}}
+      end)
+
+      Client.put(client, "http://example.com/thing", "put body")
+    end
+
+  end
+
+  describe ".patch" do
+    test "w/ normal link", %{client: client} do
+      new_thing_hal = hal_str("http://example.com/new-thing")
+
+            ExHal.HttpClientMock
+      |> expect(:patch, fn "http://example.com/", new_thing_hal, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: new_thing_hal, status_code: 200}}
+      end)
+
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = Client.patch(client, "http://example.com/", new_thing_hal)
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
+    end
+
+    test "w/ auth" do
+      client = Client.new() |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+
+      ExHal.HttpClientMock
+      |> expect(:patch, fn _url, _body, %{"Authorization" => "Bearer sometoken"}, _opts ->
+        {:ok,
+         %HTTPoison.Response{body: "{}", status_code: 200}}
+      end)
+
+      Client.patch(client, "http://example.com/thing", "patch body")
+    end
+
   end
 
 
@@ -135,7 +198,7 @@ defmodule ExHal.ClientHttpRequestTest do
     {:ok, client: %Client{}}
   end
 
-  def hal_str(url) do
+  defp hal_str(url) do
     """
       { "name": "#{url}",
         "_links": {

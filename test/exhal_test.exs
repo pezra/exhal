@@ -1,5 +1,3 @@
-Code.require_file "support/request_stubbing.exs", __DIR__
-
 defmodule ExHalTest do
   use ExUnit.Case, async: true
 
@@ -133,37 +131,32 @@ defmodule ExHalTest do
 
   defmodule HttpRequesting do
     use ExUnit.Case, async: false
-    use RequestStubbing
-
-    setup_all do
-      ExVCR.Config.cassette_library_dir(__DIR__, __DIR__)
-      :ok
-    end
+    import Mox
+    setup :verify_on_exit!
 
     test ".follow_link w/ normal link" do
-      stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
-        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.follow_link(doc(), "single")
+      ExHal.ClientMock
+      |> expect(:get, fn _client, "http://example.com/", _headers ->
+        {:ok, Document.parse!(hal_str("http://example.com/")), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, "http://example.com/"} = ExHal.url(target)
-      end
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.follow_link(doc(), "single")
+      assert {:ok, "http://example.com/"} = ExHal.url(repr)
     end
 
     test ".follow_link w/ templated link" do
-      stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
-       assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-          ExHal.follow_link(doc(), "tmpl", tmpl_vars: [q: "test"])
+      ExHal.ClientMock
+      |> expect(:get, fn _client, "http://example.com/?q=test", _headers ->
+        {:ok, Document.parse!(hal_str("http://example.com/?q=test")), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
-      end
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.follow_link(doc(), "tmpl", tmpl_vars: [q: "test"])
+      assert {:ok, "http://example.com/?q=test"} = ExHal.url(repr)
     end
 
-    test ".follow_link w/ embedded link" do
-      stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
-        assert {:ok, (target = %Document{}), %ResponseHeader{}} =
-          ExHal.follow_link(doc(), "embedded")
-
-        assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
-      end
+  test ".follow_link w/ embedded link" do
+      assert {:ok, (repr = %Document{}), %ResponseHeader{}} = ExHal.follow_link(doc(), "embedded")
+      assert {:ok, "http://example.com/embedded"} = ExHal.url(repr)
     end
 
     test ".follow_link w/ non-existent rel" do
@@ -175,40 +168,39 @@ defmodule ExHalTest do
     end
 
     test ".follow_link w/ multiple links" do
-      stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str("") do
-        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-          ExHal.follow_link(doc(), "multiple")
+      ExHal.ClientMock
+      |> stub(:get, fn _client, "http://example.com/"<>id, _opts ->
+        {:ok, Document.parse!(hal_str("http://example.com/#{id}")), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, _} = ExHal.url(target)
-      end
+      assert {:ok, (repr = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.follow_link(doc(), "multiple")
+      assert {:ok, _} = ExHal.url(repr)
     end
 
 
     test ".follow_links w/ single link" do
-      stub_request "get", url: "http://example.com/", resp_body: hal_str("http://example.com/") do
-        assert [{:ok, (target = %Document{}), %ResponseHeader{status_code: 200}}] = ExHal.follow_links(doc(), "single")
+      ExHal.ClientMock
+      |> expect(:get, fn _client, "http://example.com/", _headers ->
+        {:ok, Document.parse!(hal_str("http://example.com/")), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, "http://example.com/"} = ExHal.url(target)
-
-      end
+      assert [{:ok, (target = %Document{}), %ResponseHeader{status_code: 200}}] = ExHal.follow_links(doc(), "single")
+      assert {:ok, "http://example.com/"} = ExHal.url(target)
     end
 
     test ".follow_links w/ templated link" do
-      stub_request "get", url: "http://example.com/?q=test", resp_body: hal_str("http://example.com/?q=test") do
-       assert [{:ok, (target = %Document{}), %ResponseHeader{status_code: 200}}] =
-          ExHal.follow_links(doc(), "tmpl", tmpl_vars: [q: "test"])
+      ExHal.ClientMock
+      |> expect(:get, fn _client, "http://example.com/?q=test", _headers ->
+        {:ok, Document.parse!(hal_str("http://example.com/?q=test")), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
-      end
+      assert [{:ok, (target = %Document{}), %ResponseHeader{status_code: 200}}] = ExHal.follow_links(doc(), "tmpl", tmpl_vars: [q: "test"])
+      assert {:ok, "http://example.com/?q=test"} = ExHal.url(target)
     end
 
     test ".follow_links w/ embedded link" do
-      stub_request "get", url: "http://example.com/embedded", resp_body: hal_str("http://example.com/embedded") do
-        assert [{:ok, (target = %Document{}), %ResponseHeader{}}] =
-          ExHal.follow_links(doc(), "embedded")
-
-        assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
-      end
+      assert [{:ok, (target = %Document{}), %ResponseHeader{}}] = ExHal.follow_links(doc(), "embedded")
+      assert {:ok, "http://example.com/embedded"} = ExHal.url(target)
     end
 
     test ".follow_links w/ non-existent rel" do
@@ -222,21 +214,26 @@ defmodule ExHalTest do
     test ".post w/ normal link" do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
-      stub_request "post", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
-        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.post(doc(), "single", new_thing_hal)
+      ExHal.ClientMock
+      |> expect(:post, fn _client, "http://example.com/", new_thing_hal, _headers ->
+        {:ok, Document.parse!(new_thing_hal), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
-      end
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.post(doc(), "single", new_thing_hal)
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
     end
 
     test ".patch w/ normal link" do
       new_thing_hal = hal_str("http://example.com/new-thing")
 
-      stub_request "patch", url: "http://example.com/", req_body: new_thing_hal, resp_body: new_thing_hal do
-        assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.patch(doc(), "single", new_thing_hal)
+      ExHal.ClientMock
+      |> expect(:patch, fn _client, "http://example.com/", new_thing_hal, _headers ->
+        {:ok, Document.parse!(new_thing_hal), %ResponseHeader{status_code: 200}}
+      end)
 
-        assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
-      end
+      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} = ExHal.patch(doc(), "single", new_thing_hal)
+
+      assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
     end
 
     defp doc do
