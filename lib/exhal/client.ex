@@ -5,11 +5,27 @@ defmodule ExHal.Client do
   ## Examples
 
       iex> ExHal.Client.new()
-      %ExHal.Client{}
+      ...> |> ExHal.Client.get("http://haltalk.herokuapp.com/")
+      %ExHal.Document{...}
+
+      iex> ExHal.Client.new()
+      ...> |> ExHal.Client.post("http://haltalk.herokuapp.com/signup", ~s(
+      ...>      { "username": "fred",
+      ...>        "password": "pwnme",
+      ...>        "real_name": "Fred Wilson" }
+      ...>     ))
+      %ExHal.Document{...}
+
+      iex> authorizer = ExHal.SimpleAuthorizer.new("http://haltalk.herokuapp.com",
+      ...>                                         "Bearer my-token")
+      iex> ExHal.Client.new()
+      ...> |> ExHal.Client.add_headers("Prefer": "minimal")
+      ...> |> ExHal.Client.set_authorizer(authorizer)
+      %ExHal.Client{...}
   """
 
   require Logger
-  alias ExHal.{Document, NonHalResponse, ResponseHeader}
+  alias ExHal.{Document, NonHalResponse, ResponseHeader, NullAuthorizer}
 
   @logger Application.get_env(:exhal, :logger, Logger)
 
@@ -17,43 +33,56 @@ defmodule ExHal.Client do
   Represents a client configuration/connection. Create with `new` function.
   """
   @opaque t :: %__MODULE__{}
-  defstruct headers: [], opts: [follow_redirect: true]
+  defstruct authorizer: NullAuthorizer.new(),
+    headers: [],
+    opts: [follow_redirect: true]
 
   @typedoc """
   The return value of any function that makes an HTTP request.
   """
   @type http_response ::
-  {:ok, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
-  | {:error, Document.t() | NonHalResponse.t(), ResponseHeader.t() }
-  | {:error, Error.t()}
+  {:ok, Document.t | NonHalResponse.t, ResponseHeader.t}
+  | {:error, Document.t | NonHalResponse.t, ResponseHeader.t }
+  | {:error, Error.t}
 
   @doc """
   Returns a new client.
   """
-  @spec new(Keyword.t(), Keyword.t()) :: __MODULE__.t()
-  def new(headers, follow_redirect: follow) do
-    %__MODULE__{headers: headers, opts: [follow_redirect: follow]}
-  end
+  @spec new() :: t
+  def new(), do: %__MODULE__{}
 
-  @spec new(Keyword.t()) :: __MODULE__.t()
+  @spec new(Keyword.t) :: t
+  def new(headers: headers), do: %__MODULE__{headers: headers, opts: [follow_redirect: true]}
+  def new(follow_redirect: follow), do: %__MODULE__{headers: [], opts: [follow_redirect: follow]}
+  def new(headers: headers, follow_redirect: follow), do: %__MODULE__{headers: headers, opts: [follow_redirect: follow]}
+
+  # deprecated call patterns
   def new(headers) do
-    new(headers, follow_redirect: true)
+    %__MODULE__{headers: headers, opts: [follow_redirect: true]}
   end
 
-  @spec new() :: __MODULE__.t()
-  def new() do
-    new([], follow_redirect: true)
+  @spec new(Keyword.t, Keyword.t) :: t
+  def new(headers, follow_redirect: follow) do
+    new(headers: headers, follow_redirect: follow)
   end
 
   @doc """
   Returns client that will include the specified headers in any request
    made with it.
   """
-  @spec add_headers(__MODULE__.t(), Keyword.t()) :: __MODULE__.t()
+  @spec add_headers(t, Keyword.t) :: t
   def add_headers(client, headers) do
     updated_headers = merge_headers(client.headers, headers)
 
     %__MODULE__{client | headers: updated_headers}
+  end
+
+  @doc """
+  Returns a client that will authorize requests using the specified authorizer.
+  """
+  @spec set_authorizer(t, Authorizer.t) :: t
+  def set_authorizer(client, new_authorizer) do
+    %__MODULE__{client | authorizer: new_authorizer}
   end
 
   defmacrop log_req(method, url, do: block) do

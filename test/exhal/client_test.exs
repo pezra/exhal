@@ -2,15 +2,55 @@ Code.require_file "../support/request_stubbing.exs", __DIR__
 
 defmodule ExHal.ClientTest do
   use ExUnit.Case, async: true
-  doctest ExHal.Client
 
-  alias ExHal.Client
+  alias ExHal.{Client, SimpleAuthorizer}
 
-  test "adding headers to client" do
-    assert (%Client{}
-            |> Client.add_headers("hello": "bob")
-            |> Client.add_headers("hello": ["alice","jane"]))
-    |> to_have_header("hello", ["bob", "alice", "jane"])
+  describe ".new" do
+    test ".new/0" do
+      assert %Client{} = Client.new
+    end
+
+    test "(empty_headers)" do
+      assert %Client{} = Client.new([])
+    end
+
+    test "(headers)" do
+      assert %Client{headers: ["User-Agent": "test agent", "X-Whatever": "example"]} =
+        Client.new("User-Agent": "test agent", "X-Whatever": "example")
+    end
+
+    test "(headers, follow_redirect: follow)" do
+      assert %Client{headers: ["User-Agent": "test agent"], opts: [follow_redirect: false]} =
+        Client.new(["User-Agent": "test agent"], follow_redirect: false)
+    end
+  end
+
+  describe ".add_headers/1" do
+    test "adding headers to client" do
+      assert (%Client{}
+      |> Client.add_headers("hello": "bob")
+      |> Client.add_headers("hello": ["alice","jane"]))
+      |> to_have_header("hello", ["bob", "alice", "jane"])
+    end
+  end
+
+  describe ".set_authorizer/2" do
+    test "first time" do
+      test_auther = SimpleAuthorizer.new("http://example.com", "Bearer sometoken")
+
+      assert %Client{authorizer: test_auther} ==
+        Client.set_authorizer(Client.new, test_auther)
+    end
+
+    test "last one in wins time" do
+      test_auther1 = SimpleAuthorizer.new("http://example.com", "Bearer sometoken")
+      test_auther2 = SimpleAuthorizer.new("http://myapp.com", "Bearer someothertoken")
+
+      assert %Client{authorizer: test_auther2} ==
+        Client.new
+        |> Client.set_authorizer(test_auther1)
+        |> Client.set_authorizer(test_auther2)
+    end
   end
 
   # background
