@@ -5,8 +5,8 @@ defmodule ExHal.Mixfile do
     [
       app: :exhal,
       description: "Use HAL APIs with ease",
-      version: "7.1.2",
-      elixir: "~> 1.5",
+      version: "8.0.0",
+      elixir: "~> 1.6",
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test],
       deps: deps(),
@@ -22,13 +22,13 @@ defmodule ExHal.Mixfile do
     [
       {:poison, "~> 2.2 or ~> 3.0"},
       {:uri_template, "~> 1.0"},
-      {:httpoison, "~> 0.11 or ~> 1.0"},
-      {:odgn_json_pointer, "~> 1.0.0", app: false},
+      {:httpoison, "~> 1.0"},
+      {:odgn_json_pointer, "~> 2.0", app: false},
       {:expat, "~> 1.0"},
       {:earmark, ">= 0.0.0", only: :dev},
       {:ex_doc, "~> 0.11", only: :dev},
       {:dialyxir, "~> 0.3", only: :dev, runtime: false},
-      {:exvcr, "~> 0.7", only: :test},
+      {:exvcr, "~> 0.10.3", only: :test},
       {:excoveralls, "~> 0.4", only: :test},
       {:mox, "~> 0.3", only: :test},
       {:stream_data, "~> 0.1", only: :test}
