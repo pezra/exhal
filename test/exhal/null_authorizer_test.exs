@@ -7,7 +7,7 @@ defmodule ExHal.NullAuthorizerTest do
   end
 
   test ".authorization/2" do
-    assert :no_auth = Authorizer.authorization(null_authorizer_factory(), "http://example.com")
+    assert %{} == Authorizer.authorization(null_authorizer_factory(), "http://example.com")
   end
 
   defp null_authorizer_factory() do

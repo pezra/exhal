@@ -146,7 +146,7 @@ defmodule ExHal.Client do
     headers =
       client.headers
       |> merge_headers(normalize_headers(local_headers))
-      |> merge_headers(auth_headers(client, url))
+      |> merge_headers(Authorizer.authorization(client.authorizer, url))
 
     poison_opts = merge_poison_opts(client.opts, local_opts)
 
@@ -190,12 +190,5 @@ defmodule ExHal.Client do
 
   defp normalize_headers(headers) do
     Enum.into(headers, %{}, fn {k, v} -> {to_string(k), v} end)
-  end
-
-  defp auth_headers(client, url) do
-    case Authorizer.authorization(client.authorizer, url) do
-      :no_auth -> %{}
-      {:ok, auth} -> %{"Authorization" => auth}
-    end
   end
 end

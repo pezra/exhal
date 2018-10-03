@@ -1,4 +1,10 @@
 defmodule ExHal.NullAuthorizer do
+  @moduledoc """
+
+  A placeholder authorizer that adds nothing to the request.
+
+  """
+
   @typedoc """
   An authorizer that always responds :no_auth
   """
@@ -6,9 +12,14 @@ defmodule ExHal.NullAuthorizer do
 
   defstruct([])
 
+  @spec new() :: t()
   def new(), do: %__MODULE__{}
+
+  defimpl ExHal.Authorizer do
+    @spec authorization(Authorizer.t(), Authorizer.url()) :: %{optional(Authorizer.header_field_name()) => String.t()}
+    def authorization(_authorizer, _url), do: %{}
+  end
+
 end
 
-defimpl ExHal.Authorizer, for: ExHal.NullAuthorizer do
-  def authorization(_authorizer, _url), do: :no_auth
-end
+

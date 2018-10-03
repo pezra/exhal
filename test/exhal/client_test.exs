@@ -1,7 +1,11 @@
+
 defmodule ExHal.ClientTest do
   use ExUnit.Case, async: true
 
-  alias ExHal.{Client, SimpleAuthorizer}
+  alias ExHal.{Client, Document, NonHalResponse, ResponseHeader}
+
+  import Mox
+  setup :verify_on_exit!
 
   describe ".new" do
     test ".new/0" do
@@ -34,14 +38,14 @@ defmodule ExHal.ClientTest do
 
   describe ".set_authorizer/2" do
     test "first time" do
-      test_auther = SimpleAuthorizer.new("http://example.com", "Bearer sometoken")
+      test_auther = authorizer_factory()
 
       assert %Client{authorizer: test_auther} == Client.set_authorizer(Client.new(), test_auther)
     end
 
     test "last one in wins time" do
-      test_auther1 = SimpleAuthorizer.new("http://example.com", "Bearer sometoken")
-      test_auther2 = SimpleAuthorizer.new("http://myapp.com", "Bearer someothertoken")
+      test_auther1 = authorizer_factory()
+      test_auther2 = authorizer_factory()
 
       assert %Client{authorizer: test_auther2} ==
                Client.new()
@@ -50,26 +54,10 @@ defmodule ExHal.ClientTest do
     end
   end
 
-  # background
-
-  defp to_have_header(client, expected_name, expected_value) do
-    {:ok, actual_value} = Map.fetch(client.headers, expected_name)
-
-    actual_value == expected_value
-  end
-end
-
-defmodule ExHal.ClientHttpRequestTest do
-  use ExUnit.Case, async: false
-  import Mox
-
-  # Make sure mocks are verified when the test exits
-  setup :verify_on_exit!
-
-  alias ExHal.{Client, Document, NonHalResponse, ResponseHeader, SimpleAuthorizer}
-
   describe ".get/2" do
-    test "w/ normal link", %{client: client} do
+    test "w/ normal link" do
+      client = Client.new()
+
       ExHal.HttpClientMock
       |> expect(:get, fn "http://example.com/", _headers, _opts ->
         {:ok, %HTTPoison.Response{body: hal_str("http://example.com/thing"), status_code: 200}}
@@ -81,22 +69,38 @@ defmodule ExHal.ClientHttpRequestTest do
       assert {:ok, "http://example.com/thing"} = ExHal.url(repr)
     end
 
-    test "w/ auth" do
+    test "adds credentials to request if authorizer provides some" do
       client =
         Client.new()
-        |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+        |> Client.set_authorizer(authorizer_factory("Bearer mytoken"))
 
       ExHal.HttpClientMock
-      |> expect(:get, fn _url, %{"Authorization" => "Bearer sometoken"}, _opts ->
+      |> expect(:get, fn _url, %{"Authorization" => "Bearer mytoken"}, _opts ->
         {:ok, %HTTPoison.Response{body: "{}", status_code: 200}}
       end)
 
       Client.get(client, "http://example.com/thing")
     end
+
+    test "doesn't add credentials to request if authorizer provides none" do
+      client =
+        Client.new()
+        |> Client.set_authorizer(authorizer_factory(%{}))
+
+      ExHal.HttpClientMock
+      |> expect(:get, fn _url, headers, _opts ->
+        assert ! Map.has_key?(headers, "Authorization")
+        {:ok, %HTTPoison.Response{body: "{}", status_code: 200}}
+      end)
+
+      Client.get(client, "http://example.com/thing")
+    end
+
   end
 
   describe ".post" do
-    test "w/ normal link", %{client: client} do
+    test "w/ normal link" do
+      client = Client.new
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       ExHal.HttpClientMock
@@ -110,7 +114,9 @@ defmodule ExHal.ClientHttpRequestTest do
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(repr)
     end
 
-    test "w/ empty response", %{client: client} do
+    test "w/ empty response" do
+      client = Client.new()
+
       ExHal.HttpClientMock
       |> expect(:post, fn "http://example.com/", _body, _headers, _opts ->
         {:ok, %HTTPoison.Response{body: "", status_code: 204}}
@@ -123,10 +129,10 @@ defmodule ExHal.ClientHttpRequestTest do
     test "w/ auth" do
       client =
         Client.new()
-        |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+        |> Client.set_authorizer(authorizer_factory("Bearer mytoken"))
 
       ExHal.HttpClientMock
-      |> expect(:post, fn _url, _body, %{"Authorization" => "Bearer sometoken"}, _opts ->
+      |> expect(:post, fn _url, _body, %{"Authorization" => "Bearer mytoken"}, _opts ->
         {:ok, %HTTPoison.Response{body: "{}", status_code: 200}}
       end)
 
@@ -134,8 +140,11 @@ defmodule ExHal.ClientHttpRequestTest do
     end
   end
 
+
   describe ".put" do
-    test "w/ normal link", %{client: client} do
+    test "w/ normal link" do
+      client = Client.new()
+
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       ExHal.HttpClientMock
@@ -152,10 +161,10 @@ defmodule ExHal.ClientHttpRequestTest do
     test "w/ auth" do
       client =
         Client.new()
-        |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+        |> Client.set_authorizer(authorizer_factory("Bearer mytoken"))
 
       ExHal.HttpClientMock
-      |> expect(:put, fn _url, _body, %{"Authorization" => "Bearer sometoken"}, _opts ->
+      |> expect(:put, fn _url, _body, %{"Authorization" => "Bearer mytoken"}, _opts ->
         {:ok, %HTTPoison.Response{body: "{}", status_code: 200}}
       end)
 
@@ -164,7 +173,9 @@ defmodule ExHal.ClientHttpRequestTest do
   end
 
   describe ".patch" do
-    test "w/ normal link", %{client: client} do
+    test "w/ normal link" do
+      client = Client.new()
+
       new_thing_hal = hal_str("http://example.com/new-thing")
 
       ExHal.HttpClientMock
@@ -181,10 +192,10 @@ defmodule ExHal.ClientHttpRequestTest do
     test "w/ auth" do
       client =
         Client.new()
-        |> Client.set_authorizer(SimpleAuthorizer.new("http://example.com", "Bearer sometoken"))
+        |> Client.set_authorizer(authorizer_factory("Bearer mytoken"))
 
       ExHal.HttpClientMock
-      |> expect(:patch, fn _url, _body, %{"Authorization" => "Bearer sometoken"}, _opts ->
+      |> expect(:patch, fn _url, _body, %{"Authorization" => "Bearer mytoken"}, _opts ->
         {:ok, %HTTPoison.Response{body: "{}", status_code: 200}}
       end)
 
@@ -192,10 +203,23 @@ defmodule ExHal.ClientHttpRequestTest do
     end
   end
 
-  # Background
 
-  setup do
-    {:ok, client: %Client{}}
+  # background
+
+  defp client_factory(), do: %Client{}
+
+  defp authorizer_factory(headers \\ %{"Authorization" => "Bearer mytoken"})
+  defp authorizer_factory(headers) when is_map(headers) do
+    %ExHal.TestAuthorizer{headers: headers}
+  end
+  defp authorizer_factory(credentials) when is_binary(credentials) do
+    %ExHal.TestAuthorizer{headers: %{"Authorization" => credentials}}
+  end
+
+  defp to_have_header(client, expected_name, expected_value) do
+    {:ok, actual_value} = Map.fetch(client.headers, expected_name)
+
+    actual_value == expected_value
   end
 
   defp hal_str(url) do
@@ -207,4 +231,5 @@ defmodule ExHal.ClientHttpRequestTest do
     }
     """
   end
+
 end

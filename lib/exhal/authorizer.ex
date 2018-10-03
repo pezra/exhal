@@ -9,11 +9,27 @@ defprotocol ExHal.Authorizer do
   """
   @type url :: String.t()
 
-  @doc """
-  Returns `{:ok, credentials}` if the authorizer
-  knows the resource and has credentials for it. Otherwise, returns
-  `:no_auth`.
+  @typedoc """
+  An object that implements the ExHal.Authorizer protocol.
   """
-  @spec authorization(any, url()) :: {:ok, credentials()} | :no_auth
+  @type authorizer :: any()
+
+  @typedoc """
+  Name of a HTTP header field.
+  """
+  @type header_field_name :: String.t
+
+  @doc """
+
+  Called before each request to calculate any header fields needed to
+  authorize the request. A common return would be
+
+      %{"Authorization" => "Bearer <sometoken>"}
+
+  If the URL is unrecognized or no header fields are appropriate or
+  needed this function should return and empty map.
+
+  """
+  @spec authorization(authorizer, url()) :: %{optional(header_field_name()) => String.t()}
   def authorization(authorizer, url)
 end
