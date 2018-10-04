@@ -11,8 +11,8 @@ defimpl ExHal.Locatable, for: ExHal.NonHalResponse do
     a_resp.headers
     |> Enum.find(fn {field_name, _} -> Regex.match?(~r/(content-)?location/i, field_name) end)
     |> case do
-         nil -> :error
-         {_, url} -> {:ok, url}
-       end
+      nil -> :error
+      {_, url} -> {:ok, url}
+    end
   end
 end

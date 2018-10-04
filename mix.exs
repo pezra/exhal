@@ -10,7 +10,8 @@ defmodule ExHal.Mixfile do
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test],
       deps: deps(),
-      package: package()
+      package: package(),
+      elixirc_paths: elixirc_paths(Mix.env)
     ]
   end
 
@@ -75,4 +76,7 @@ defmodule ExHal.Mixfile do
   defp override_dep({package, version}, deps_list) do
     Enum.reject(deps_list, fn dep -> elem(dep, 0) == package end) ++ [{package, version}]
   end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_),     do: ["lib"]
 end

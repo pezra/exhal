@@ -103,7 +103,8 @@ defmodule ExHal.Assertions do
 
   # internal functions
 
-  @spec p_assert_property(String.t | Document.t, String.t, (any() -> boolean()), String.t) :: any()
+  @spec p_assert_property(String.t() | Document.t(), String.t(), (any() -> boolean()), String.t()) ::
+          any()
   def p_assert_property(doc, prop_name, check_fn, check_desc) when is_binary(doc) do
     p_assert_property(Document.parse!(doc), prop_name, check_fn, check_desc)
   end

@@ -22,7 +22,7 @@ defmodule ExHal.TranscoderTest do
     }
     """
 
-    {:ok, doc: ExHal.Document.parse!(ExHal.client, hal)}
+    {:ok, doc: ExHal.Document.parse!(ExHal.client(), hal)}
   end
 
   test "can we make the most simple transcoder", %{doc: doc} do
@@ -40,13 +40,14 @@ defmodule ExHal.TranscoderTest do
       def to_hal(val), do: val * -1
       def from_hal(val), do: val * -1
     end
+
     defmodule MyOverreachingTranscoder do
       use ExHal.Transcoder
 
-      defproperty "thing"
-      defproperty "TheOtherThing", param: :thing2, value_converter: NegationConverter
-      defproperty "missingThing",  param: :thing3
-      defproperty "yer_mom", param: [:yer, :mom]
+      defproperty("thing")
+      defproperty("TheOtherThing", param: :thing2, value_converter: NegationConverter)
+      defproperty("missingThing", param: :thing3)
+      defproperty("yer_mom", param: [:yer, :mom])
     end
 
     assert %{thing: 1, thing2: -2, yer: %{mom: true}} == MyOverreachingTranscoder.decode!(doc)
@@ -62,13 +63,13 @@ defmodule ExHal.TranscoderTest do
     defmodule MySimpleTranscoder do
       use ExHal.Transcoder
 
-      defproperty "firstUse",  param: :thing
-      defproperty "secondUse", param: :thing
+      defproperty("firstUse", param: :thing)
+      defproperty("secondUse", param: :thing)
     end
 
     encoded = MySimpleTranscoder.encode!(%{thing: "thing_value"})
 
-    assert "thing_value" == ExHal.get_lazy(encoded, "firstUse",  fn -> :missing end)
+    assert "thing_value" == ExHal.get_lazy(encoded, "firstUse", fn -> :missing end)
     assert "thing_value" == ExHal.get_lazy(encoded, "secondUse", fn -> :missing end)
   end
 
@@ -83,7 +84,7 @@ defmodule ExHal.TranscoderTest do
     defmodule DynamicTranscoder do
       use ExHal.Transcoder
 
-      defproperty "thing", value_converter: DynamicConverter
+      defproperty("thing", value_converter: DynamicConverter)
     end
 
     encoded = DynamicTranscoder.encode!(%{thing: 2}, factor: 2)
@@ -96,48 +97,57 @@ defmodule ExHal.TranscoderTest do
     defmodule MyLinkTranscoder do
       use ExHal.Transcoder
 
-      deflink "up", param: :mylink
-      deflink "none", param: :none
-      deflink "nolink", param: :nolink
-      deflink "nested", param: [:nested, :url]
-      deflink "fillin", param: :fillin, templated: true
+      deflink("up", param: :mylink)
+      deflink("none", param: :none)
+      deflink("nolink", param: :nolink)
+      deflink("nested", param: [:nested, :url])
+      deflink("fillin", param: :fillin, templated: true)
     end
 
-    assert MyLinkTranscoder.decode!(doc) == %{mylink: "http://example.com/1",
-                                              nested: %{url: "http://example.com/2"},
-                                              fillin: "http://example.com/3{?data}"
-                                             }
+    assert MyLinkTranscoder.decode!(doc) == %{
+             mylink: "http://example.com/1",
+             nested: %{url: "http://example.com/2"},
+             fillin: "http://example.com/3{?data}"
+           }
 
-    encoded = MyLinkTranscoder.encode!(%{mylink: "http://example.com/1",
-                                         nested: %{url: "http://example.com/2"},
-                                         fillin: "http://example.com/3{?data}"})
+    encoded =
+      MyLinkTranscoder.encode!(%{
+        mylink: "http://example.com/1",
+        nested: %{url: "http://example.com/2"},
+        fillin: "http://example.com/3{?data}"
+      })
 
     assert {:ok, "http://example.com/1"} == ExHal.link_target(encoded, "up")
     assert {:ok, "http://example.com/2"} == ExHal.link_target(encoded, "nested")
-    assert {:ok, "http://example.com/3?data=INFO"} == ExHal.link_target(encoded, "fillin", tmpl_vars: [data: "INFO"])
+
+    assert {:ok, "http://example.com/3?data=INFO"} ==
+             ExHal.link_target(encoded, "fillin", tmpl_vars: [data: "INFO"])
   end
 
   test "don't inject a link that has a null href" do
     defmodule MyEmptyLinkTranscoder do
       use ExHal.Transcoder
 
-      deflink "present"
-      deflink "present_but_nil"
-      deflink "absent"
+      deflink("present")
+      deflink("present_but_nil")
+      deflink("absent")
     end
 
-    encoded = MyEmptyLinkTranscoder.encode!(%{present: "http://example.com/present",
-                                              present_but_nil: nil})
+    encoded =
+      MyEmptyLinkTranscoder.encode!(%{present: "http://example.com/present", present_but_nil: nil})
 
-    assert {:error, %ExHal.Error{reason: "no such link: absent"}} == ExHal.link_target(encoded, "absent")
-    assert {:error, %ExHal.Error{reason: "no such link: present_but_nil"}} == ExHal.link_target(encoded, "present_but_nil")
+    assert {:error, %ExHal.Error{reason: "no such link: absent"}} ==
+             ExHal.link_target(encoded, "absent")
+
+    assert {:error, %ExHal.Error{reason: "no such link: present_but_nil"}} ==
+             ExHal.link_target(encoded, "present_but_nil")
   end
 
   test "don't try to extract links from document that has no links" do
     defmodule MyTinyTranscoder do
       use ExHal.Transcoder
 
-      deflink "up", param: :mylink
+      deflink("up", param: :mylink)
     end
 
     hal = """
@@ -146,7 +156,7 @@ defmodule ExHal.TranscoderTest do
     }
     """
 
-    doc = ExHal.Document.parse!(ExHal.client, hal)
+    doc = ExHal.Document.parse!(ExHal.client(), hal)
     assert MyTinyTranscoder.decode!(doc) == %{}
   end
 
@@ -154,7 +164,7 @@ defmodule ExHal.TranscoderTest do
     defmodule MyOtherMultiLinkTranscoder do
       use ExHal.Transcoder
 
-      deflinks "tag", param: :tag
+      deflinks("tag", param: :tag)
     end
 
     %{tag: tags} = MyOtherMultiLinkTranscoder.decode!(doc)
@@ -168,7 +178,6 @@ defmodule ExHal.TranscoderTest do
     assert {:ok, ["urn:1", "http://2", "foo:1"]} == ExHal.link_targets(encoded, "tag")
   end
 
-
   test "trying to extract links with value conversion", %{doc: doc} do
     defmodule MyLinkConverter do
       @behaviour ExHal.Transcoder.ValueConverter
@@ -178,10 +187,12 @@ defmodule ExHal.TranscoderTest do
       end
 
       def from_hal(up_url) do
-        {id, _} = up_url
-        |> String.split("/")
-        |> List.last
-        |> Integer.parse
+        {id, _} =
+          up_url
+          |> String.split("/")
+          |> List.last()
+          |> Integer.parse()
+
         id
       end
     end
@@ -189,7 +200,7 @@ defmodule ExHal.TranscoderTest do
     defmodule MyLinkConversionTranscoder do
       use ExHal.Transcoder
 
-      deflink "up", param: :up_id, value_converter: MyLinkConverter
+      deflink("up", param: :up_id, value_converter: MyLinkConverter)
     end
 
     assert MyLinkConversionTranscoder.decode!(doc) == %{up_id: 1}
@@ -201,18 +212,19 @@ defmodule ExHal.TranscoderTest do
   test "composable transcoders", %{doc: doc} do
     defmodule BaseTranscoder do
       use ExHal.Transcoder
-      defproperty "thing"
-      deflink "up", param: :up_url
+      defproperty("thing")
+      deflink("up", param: :up_url)
     end
 
     defmodule ExtTranscoder do
       use ExHal.Transcoder
-      defproperty "TheOtherThing", param: :thing2
-      deflinks "tag", param: :tag
+      defproperty("TheOtherThing", param: :thing2)
+      deflinks("tag", param: :tag)
     end
 
-    decoded = BaseTranscoder.decode!(doc)
-    |> ExtTranscoder.decode!(doc)
+    decoded =
+      BaseTranscoder.decode!(doc)
+      |> ExtTranscoder.decode!(doc)
 
     assert %{thing: 1} = decoded
     assert %{thing2: 2} = decoded
@@ -224,13 +236,16 @@ defmodule ExHal.TranscoderTest do
     assert Enum.member?(tags, "http://2")
     assert Enum.member?(tags, "urn:1")
 
-    params = %{thing: 1,
-               tag: ["urn:1", "http://2", "foo:1"],
-               thing2: 2,
-               up_url: "http://example.com/1"}
+    params = %{
+      thing: 1,
+      tag: ["urn:1", "http://2", "foo:1"],
+      thing2: 2,
+      up_url: "http://example.com/1"
+    }
 
-    encoded = BaseTranscoder.encode!(params)
-    |> ExtTranscoder.encode!(params)
+    encoded =
+      BaseTranscoder.encode!(params)
+      |> ExtTranscoder.encode!(params)
 
     assert 1 == ExHal.get_lazy(encoded, "thing", fn -> :missing end)
     assert 2 == ExHal.get_lazy(encoded, "TheOtherThing", fn -> :missing end)
@@ -243,16 +258,16 @@ defmodule ExHal.TranscoderTest do
     defmodule MartiniTranscoder do
       use ExHal.Transcoder
 
-      defproperty "baseIngredient", param: [:spirits, :liquor]
+      defproperty("baseIngredient", param: [:spirits, :liquor])
     end
 
     hal = Poison.encode!(%{"baseIngredient" => "gin"})
-    doc = ExHal.Document.parse!(ExHal.client, hal)
+    doc = ExHal.Document.parse!(ExHal.client(), hal)
     cocktail = MartiniTranscoder.decode!(doc)
     assert %{spirits: %{liquor: "gin"}} == cocktail
 
     json_patches = [
-      %{"op" => "replace", "path" => "/baseIngredient", "value" => "vodka"},
+      %{"op" => "replace", "path" => "/baseIngredient", "value" => "vodka"}
     ]
 
     bond_style = MartiniTranscoder.patch!(cocktail, json_patches)
@@ -264,23 +279,23 @@ defmodule ExHal.TranscoderTest do
     defmodule ShakenIsNotStirredConverter do
       @behaviour ExHal.Transcoder.ValueConverter
       def from_hal(bool), do: invert_bool(bool)
-      def to_hal(bool),   do: invert_bool(bool)
+      def to_hal(bool), do: invert_bool(bool)
       defp invert_bool(bool), do: !bool
     end
 
     defmodule MartiniTranscoder2 do
       use ExHal.Transcoder
 
-      defproperty "stirred", param: [:shaken], value_converter: ShakenIsNotStirredConverter
+      defproperty("stirred", param: [:shaken], value_converter: ShakenIsNotStirredConverter)
     end
 
     hal = Poison.encode!(%{stirred: true})
-    doc = ExHal.Document.parse!(ExHal.client, hal)
+    doc = ExHal.Document.parse!(ExHal.client(), hal)
     cocktail = MartiniTranscoder2.decode!(doc)
     assert %{shaken: false} == cocktail
 
     json_patches = [
-      %{"op" => "replace", "path" => "/stirred", "value" => false},
+      %{"op" => "replace", "path" => "/stirred", "value" => false}
     ]
 
     bond_style = MartiniTranscoder2.patch!(cocktail, json_patches)
@@ -292,13 +307,13 @@ defmodule ExHal.TranscoderTest do
     defmodule MartiniTranscoder3 do
       use ExHal.Transcoder
 
-      defproperty "serving_dish"
+      defproperty("serving_dish")
     end
 
     cocktail = %{serving_dish: "mug"}
 
     json_patches = [
-      %{"op" => "replace", "path" => "/firearm", "value" => "Walther PPK"},
+      %{"op" => "replace", "path" => "/firearm", "value" => "Walther PPK"}
     ]
 
     assert cocktail == MartiniTranscoder3.patch!(cocktail, json_patches)
@@ -308,14 +323,14 @@ defmodule ExHal.TranscoderTest do
     defmodule MartiniTranscoder4 do
       use ExHal.Transcoder
 
-      defproperty "garnish_type"
-      defproperty "garnish_count"
+      defproperty("garnish_type")
+      defproperty("garnish_count")
     end
 
     cocktail = %{garnish_type: "radish", garnish_count: 1}
 
     json_patches = [
-      %{"op" => "replace", "path" => "/garnish_type",  "value" => "olive"},
+      %{"op" => "replace", "path" => "/garnish_type", "value" => "olive"},
       %{"op" => "replace", "path" => "/garnish_count", "value" => 2}
     ]
 
@@ -328,14 +343,14 @@ defmodule ExHal.TranscoderTest do
     defmodule CompanyAutoTranscoder do
       use ExHal.Transcoder
 
-      defproperty "make", protected: true
-      defproperty "model"
+      defproperty("make", protected: true)
+      defproperty("model")
     end
 
     bonds_ride = %{make: "Aston Martin", model: "DB5"}
 
     json_patches = [
-      %{"op" => "replace", "path" => "/make",  "value" => "Mopeds-R-Us"},
+      %{"op" => "replace", "path" => "/make", "value" => "Mopeds-R-Us"},
       %{"op" => "replace", "path" => "/model", "value" => "Vanquish"}
     ]
 
@@ -348,19 +363,31 @@ defmodule ExHal.TranscoderTest do
     defmodule DestinationTranscoder do
       use ExHal.Transcoder
 
-      deflink "missionLocation", param: :mission_locale
-      deflink "transportInfo",   param: :transport_details
+      deflink("missionLocation", param: :mission_locale)
+      deflink("transportInfo", param: :transport_details)
     end
 
     links = %{"missionLocation" => %{href: "http://mi5.uk/l/moscow"}}
     hal = Poison.encode!(%{_links: links})
-    doc = ExHal.Document.parse!(ExHal.client, hal)
+    doc = ExHal.Document.parse!(ExHal.client(), hal)
     mission = DestinationTranscoder.decode!(doc)
 
     json_patches = [
-      %{"op" => "replace", "path" => "/_links/missionLocation", "value" => %{"href" => "http://mi5.uk/l/singapore"}},
-      %{"op" => "replace", "path" => "/_links/transportInfo",   "value" => %{"href" => "http://mi5.uk/travel/123456"}},
-      %{"op" => "replace", "path" => "/_links/notALinkOrProp",  "value" => %{"href" => "http://i_will_be_ignored"}},
+      %{
+        "op" => "replace",
+        "path" => "/_links/missionLocation",
+        "value" => %{"href" => "http://mi5.uk/l/singapore"}
+      },
+      %{
+        "op" => "replace",
+        "path" => "/_links/transportInfo",
+        "value" => %{"href" => "http://mi5.uk/travel/123456"}
+      },
+      %{
+        "op" => "replace",
+        "path" => "/_links/notALinkOrProp",
+        "value" => %{"href" => "http://i_will_be_ignored"}
+      }
     ]
 
     new_mission = DestinationTranscoder.patch!(mission, json_patches)
@@ -372,22 +399,34 @@ defmodule ExHal.TranscoderTest do
     assert new_mission.transport_details == "http://mi5.uk/travel/123456"
 
     # an operation for on a non-declared path will be dropped
-    assert [] == new_mission |> Map.delete(:mission_locale) |> Map.delete(:transport_details) |> Map.keys
+    assert [] ==
+             new_mission
+             |> Map.delete(:mission_locale)
+             |> Map.delete(:transport_details)
+             |> Map.keys()
   end
 
   test "add a link to a deflinks" do
     defmodule CoworkersTranscoder do
       use ExHal.Transcoder
 
-      deflinks "workChums", param: :coworkers
+      deflinks("workChums", param: :coworkers)
     end
 
-    hal = Poison.encode!(%{_links: %{"workChums" => [%{href: "http://mi5.uk/q"}, %{href: "http://mi5.uk/m"}]}})
-    doc = ExHal.Document.parse!(ExHal.client, hal)
+    hal =
+      Poison.encode!(%{
+        _links: %{"workChums" => [%{href: "http://mi5.uk/q"}, %{href: "http://mi5.uk/m"}]}
+      })
+
+    doc = ExHal.Document.parse!(ExHal.client(), hal)
     workplace = CoworkersTranscoder.decode!(doc)
 
     json_patches = [
-      %{"op" => "add", "path" => "/_links/workChums/-",  "value" => %{"href" => "http://mi5.uk/moneypenny"}}
+      %{
+        "op" => "add",
+        "path" => "/_links/workChums/-",
+        "value" => %{"href" => "http://mi5.uk/moneypenny"}
+      }
     ]
 
     new_workplace = CoworkersTranscoder.patch!(workplace, json_patches)
@@ -401,21 +440,26 @@ defmodule ExHal.TranscoderTest do
     defmodule CoworkersTranscoder2 do
       use ExHal.Transcoder
 
-      deflinks "workChums", param: :coworkers
+      deflinks("workChums", param: :coworkers)
     end
 
-    hal = Poison.encode!(%{_links: %{"workChums" => [%{href: "http://mi5.uk/q"}, %{href: "http://mi5.uk/m"}]}})
-    doc = ExHal.Document.parse!(ExHal.client, hal)
+    hal =
+      Poison.encode!(%{
+        _links: %{"workChums" => [%{href: "http://mi5.uk/q"}, %{href: "http://mi5.uk/m"}]}
+      })
+
+    doc = ExHal.Document.parse!(ExHal.client(), hal)
     workplace = CoworkersTranscoder2.decode!(doc)
 
     json_patches = [
-      %{"op" => "replace",
+      %{
+        "op" => "replace",
         "path" => "/_links/workChums",
         "value" => [
           %{"href" => "http://spectre.org/u/jaws"},
           %{"href" => "http://spectre.org/u/oddjob"}
         ]
-       }
+      }
     ]
 
     new_workplace = CoworkersTranscoder2.patch!(workplace, json_patches)

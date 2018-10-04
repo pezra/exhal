@@ -12,7 +12,7 @@ defmodule ExHal.InterpreterTest do
     }
     """
 
-    {:ok, doc: ExHal.Document.parse!(ExHal.client, hal)}
+    {:ok, doc: ExHal.Document.parse!(ExHal.client(), hal)}
   end
 
   test "can we make the most simple interpreter", %{doc: doc} do
@@ -27,9 +27,9 @@ defmodule ExHal.InterpreterTest do
     defmodule MyOverreachingInterpreter do
       use ExHal.Interpreter
 
-      defextract :thing
-      defextract :thing2, from: "TheOtherThing"
-      defextract :thing3
+      defextract(:thing)
+      defextract(:thing2, from: "TheOtherThing")
+      defextract(:thing3)
     end
 
     assert MyOverreachingInterpreter.to_params(doc) == %{thing: 1, thing2: 2}
@@ -39,7 +39,7 @@ defmodule ExHal.InterpreterTest do
     defmodule MyLinkInterpreter do
       use ExHal.Interpreter
 
-      defextractlink :mylink, rel: "up"
+      defextractlink(:mylink, rel: "up")
     end
 
     assert MyLinkInterpreter.to_params(doc) == %{mylink: "http://example.com"}

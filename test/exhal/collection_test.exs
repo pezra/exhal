@@ -1,8 +1,7 @@
-Code.require_file "../support/request_stubbing.exs", __DIR__
-
 defmodule ExHal.CollectionTest do
   use ExUnit.Case, async: true
-  use RequestStubbing
+  import Mox
+  setup :verify_on_exit!
 
   alias ExHal.Document
   alias ExHal.Collection
@@ -11,8 +10,9 @@ defmodule ExHal.CollectionTest do
   test ".to_json_hash" do
     parsed_hal = %{
       "name" => "My Name",
-      "_embedded" => %{ "test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
-      "_links" => %{ "self" => %{"href" => "http://example.com/my-name"}}}
+      "_embedded" => %{"test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
+      "_links" => %{"self" => %{"href" => "http://example.com/my-name"}}
+    }
 
     doc = Document.from_parsed_hal(parsed_hal)
     assert %{"_embedded" => %{"item" => [^parsed_hal]}} = Collection.to_json_hash([doc])
@@ -21,14 +21,16 @@ defmodule ExHal.CollectionTest do
   test "render!/1" do
     parsed_hal = %{
       "name" => "My Name",
-      "_embedded" => %{ "test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
-      "_links" => %{ "self" => %{"href" => "http://example.com/my-name"}}}
+      "_embedded" => %{"test" => %{"_embedded" => %{}, "_links" => %{}, "name" => "Is Test"}},
+      "_links" => %{"self" => %{"href" => "http://example.com/my-name"}}
+    }
 
     doc = Document.from_parsed_hal(parsed_hal)
+
     {:ok, rendered_doc, %ResponseHeader{}} =
       Collection.render!([doc])
-      |> Document.parse!
-      |> Collection.to_stream
+      |> Document.parse!()
+      |> Collection.to_stream()
       |> Enum.at(0)
 
     assert rendered_doc == doc
@@ -55,9 +57,9 @@ defmodule ExHal.CollectionTest do
   } do
     subject = Collection.to_stream(single_page_collection_doc)
     assert 2 == Enum.count(subject)
-    assert Enum.all? subject, fn x -> {:ok, _, %ResponseHeader{}} = x end
-    assert Enum.any? subject, has_doc_with_name("first")
-    assert Enum.any? subject, has_doc_with_name("second")
+    assert Enum.all?(subject, fn x -> {:ok, _, %ResponseHeader{}} = x end)
+    assert Enum.any?(subject, has_doc_with_name("first"))
+    assert Enum.any?(subject, has_doc_with_name("second"))
   end
 
   test ".to_stream(multi_page_collection_doc) contains all items", %{
@@ -67,13 +69,16 @@ defmodule ExHal.CollectionTest do
   } do
     subject = Collection.to_stream(multi_page_collection_doc)
 
-    stub_request "get", url: last_page_collection_url, resp_body: last_page_collection_hal_str do
-      assert 3 == Enum.count(subject)
-      assert Enum.all? subject, fn x -> {:ok, _, %ResponseHeader{}} = x end
-      assert Enum.any? subject, has_doc_with_name("first")
-      assert Enum.any? subject, has_doc_with_name("second")
-      assert Enum.any? subject, has_doc_with_name("last")
-    end
+    ExHal.ClientMock
+    |> stub(:get, fn _client, ^last_page_collection_url, _headers ->
+      {:ok, Document.parse!(last_page_collection_hal_str), %ResponseHeader{status_code: 200}}
+    end)
+
+    assert 3 == Enum.count(subject)
+    assert Enum.all?(subject, fn x -> {:ok, _, %ResponseHeader{}} = x end)
+    assert Enum.any?(subject, has_doc_with_name("first"))
+    assert Enum.any?(subject, has_doc_with_name("second"))
+    assert Enum.any?(subject, has_doc_with_name("last"))
   end
 
   test "ExHal.to_stream(sinlge_page_collection_doc) works", ctx do
@@ -84,17 +89,19 @@ defmodule ExHal.CollectionTest do
     assert ExHal.to_stream(doc) |> is_a_stream
   end
 
-
   # background
 
   setup do
-    {:ok, [non_collection_doc:           non_collection_doc(),
-           single_page_collection_doc:   single_page_collection_doc(),
-           multi_page_collection_doc:    multi_page_collection_doc(),
-           empty_collection_doc:         empty_collection_doc(),
-           truly_empty_collection_doc:   truly_empty_collection_doc(),
-           last_page_collection_url:     "http://example.com/?p=2",
-           last_page_collection_hal_str: last_page_collection_hal_str()]}
+    {:ok,
+     [
+       non_collection_doc: non_collection_doc(),
+       single_page_collection_doc: single_page_collection_doc(),
+       multi_page_collection_doc: multi_page_collection_doc(),
+       empty_collection_doc: empty_collection_doc(),
+       truly_empty_collection_doc: truly_empty_collection_doc(),
+       last_page_collection_url: "http://example.com/?p=2",
+       last_page_collection_hal_str: last_page_collection_hal_str()
+     ]}
   end
 
   defp non_collection_doc do
@@ -102,22 +109,13 @@ defmodule ExHal.CollectionTest do
   end
 
   defp single_page_collection_doc do
-    Document.from_parsed_hal(%{"_embedded" =>
-                                %{"item" =>
-                                   [%{"name" => "first"},
-                                    %{"name" => "second"}
-                                   ]
-                                 }
-                              })
+    Document.from_parsed_hal(%{
+      "_embedded" => %{"item" => [%{"name" => "first"}, %{"name" => "second"}]}
+    })
   end
 
   defp empty_collection_doc do
-    Document.from_parsed_hal(%{"_embedded" =>
-                                %{"item" =>
-                                   [
-                                   ]
-                                 }
-                              })
+    Document.from_parsed_hal(%{"_embedded" => %{"item" => []}})
   end
 
   defp truly_empty_collection_doc do
@@ -125,25 +123,22 @@ defmodule ExHal.CollectionTest do
   end
 
   defp multi_page_collection_doc do
-    Document.from_parsed_hal(%{"_embedded" =>
-                                %{"item" =>
-                                   [%{"name" => "first"},
-                                    %{"name" => "second"}
-                                   ]
-                                 },
-                               "_links" =>
-                                 %{"next" => %{"href" => "http://example.com/?p=2"}
-                                  }
-                              })
+    Document.from_parsed_hal(%{
+      "_embedded" => %{"item" => [%{"name" => "first"}, %{"name" => "second"}]},
+      "_links" => %{
+        "next" => %{"href" => "http://example.com/?p=2"},
+        "self" => %{"href" => "http://example.com/?p=1"}
+      }
+    })
   end
 
   defp last_page_collection_hal_str do
     """
-      {"_embedded": {
-         "item": [{"name": "last"}]
-         }
-      }
-      """
+    {"_embedded": {
+       "item": [{"name": "last"}]
+       }
+    }
+    """
   end
 
   defp is_a_stream(thing) do
@@ -153,8 +148,11 @@ defmodule ExHal.CollectionTest do
   defp has_doc_with_name(expected) do
     fn item ->
       case item do
-        {:ok, doc, %ResponseHeader{}} -> ExHal.get_property_lazy(doc, "name", fn -> :missing end) == expected
-        _ -> false
+        {:ok, doc, %ResponseHeader{}} ->
+          ExHal.get_property_lazy(doc, "name", fn -> :missing end) == expected
+
+        _ ->
+          false
       end
     end
   end

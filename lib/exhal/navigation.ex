@@ -61,8 +61,11 @@ defmodule ExHal.Navigation do
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
-      {:error, e} -> {:error, e}
-      {:ok, link} -> @client_module.post(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:error, e} ->
+        {:error, e}
+
+      {:ok, link} ->
+        @client_module.post(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 
@@ -77,8 +80,11 @@ defmodule ExHal.Navigation do
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
-      {:error, e} -> {:error, e}
-      {:ok, link} -> @client_module.put(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:error, e} ->
+        {:error, e}
+
+      {:ok, link} ->
+        @client_module.put(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 
@@ -93,8 +99,11 @@ defmodule ExHal.Navigation do
     tmpl_vars = Map.get(opts, :tmpl_vars, %{})
 
     case figure_link(a_doc, name, pick_volunteer?) do
-      {:error, e} -> {:error, e}
-      {:ok, link} -> @client_module.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:error, e} ->
+        {:error, e}
+
+      {:ok, link} ->
+        @client_module.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 

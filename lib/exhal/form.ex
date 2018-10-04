@@ -68,13 +68,10 @@ defmodule ExHal.Form do
   """
   @spec submit(__MODULE__.t(), Client.t()) :: Client.http_response()
   def submit(form, client) do
-    apply(client_module(),
+    apply(
+      client_module(),
       form.method,
-      [client,
-       form.target,
-       encode(form),
-       [headers: ["Content-Type": form.content_type]]
-      ]
+      [client, form.target, encode(form), [headers: ["Content-Type": form.content_type]]]
     )
   end
 
@@ -124,8 +121,8 @@ defmodule ExHal.Form do
 
   defp extract_method(a_map) do
     Map.get_lazy(a_map, "method", fn -> raise ArgumentError, "form method missing" end)
-    |> String.downcase
-    |> String.to_atom
+    |> String.downcase()
+    |> String.to_atom()
   end
 
   defp extract_content_type(a_map) do
