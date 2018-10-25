@@ -23,9 +23,9 @@ defmodule ExHal.Client do
   The return value of any function that makes an HTTP request.
   """
   @type http_response ::
-  {:ok, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
-  | {:error, Document.t() | NonHalResponse.t(), ResponseHeader.t() }
-  | {:error, Error.t()}
+          {:ok, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
+          | {:error, Document.t() | NonHalResponse.t(), ResponseHeader.t()}
+          | {:error, Error.t()}
 
   @doc """
   Returns a new client.
@@ -64,7 +64,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback get(__MODULE__.t, String.t, Keyword.t) :: http_response()
+  @callback get(__MODULE__.t(), String.t(), Keyword.t()) :: http_response()
   def get(client, url, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -74,7 +74,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback post(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
+  @callback post(__MODULE__.t(), String.t(), <<>>, Keyword.t()) :: http_response()
   def post(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -84,7 +84,7 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback put(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
+  @callback put(__MODULE__.t(), String.t(), <<>>, Keyword.t()) :: http_response()
   def put(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
@@ -94,12 +94,22 @@ defmodule ExHal.Client do
     end
   end
 
-  @callback patch(__MODULE__.t, String.t, <<>>, Keyword.t) :: http_response()
+  @callback patch(__MODULE__.t(), String.t(), <<>>, Keyword.t()) :: http_response()
   def patch(client, url, body, opts \\ []) do
     {headers, poison_opts} = figure_headers_and_opt(opts, client)
 
     log_req("PATCH", url) do
       HTTPoison.patch(url, body, headers, poison_opts)
+      |> extract_return(client)
+    end
+  end
+
+  @callback delete(__MODULE__.t(), String.t(), Keyword.t()) :: http_response()
+  def delete(client, url, opts \\ []) do
+    {headers, poison_opts} = figure_headers_and_opt(opts, client)
+
+    log_req("DELETE", url) do
+      HTTPoison.delete(url, headers, poison_opts)
       |> extract_return(client)
     end
   end

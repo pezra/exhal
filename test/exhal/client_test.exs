@@ -1,4 +1,4 @@
-Code.require_file "../support/request_stubbing.exs", __DIR__
+Code.require_file("../support/request_stubbing.exs", __DIR__)
 
 defmodule ExHal.ClientTest do
   use ExUnit.Case, async: true
@@ -7,10 +7,10 @@ defmodule ExHal.ClientTest do
   alias ExHal.Client
 
   test "adding headers to client" do
-    assert (%Client{}
-            |> Client.add_headers("hello": "bob")
-            |> Client.add_headers("hello": ["alice","jane"]))
-    |> to_have_header("hello", ["bob", "alice", "jane"])
+    assert %Client{}
+           |> Client.add_headers(hello: "bob")
+           |> Client.add_headers(hello: ["alice", "jane"])
+           |> to_have_header("hello", ["bob", "alice", "jane"])
   end
 
   # background
@@ -33,8 +33,8 @@ defmodule ExHal.ClientHttpRequestTest do
     thing_hal = hal_str("http://example.com/thing")
 
     stub_request "get", url: "http://example.com/", resp_body: thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.get(client, "http://example.com/")
+      assert {:ok, target = %Document{}, %ResponseHeader{status_code: 200}} =
+               Client.get(client, "http://example.com/")
 
       assert {:ok, "http://example.com/thing"} = ExHal.url(target)
     end
@@ -43,33 +43,36 @@ defmodule ExHal.ClientHttpRequestTest do
   test ".post w/ normal link", %{client: client} do
     new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "post", url: "http://example.com/",
-                         req_body: new_thing_hal,
-                         resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.post(client, "http://example.com/", new_thing_hal)
+    stub_request "post",
+      url: "http://example.com/",
+      req_body: new_thing_hal,
+      resp_body: new_thing_hal do
+      assert {:ok, target = %Document{}, %ResponseHeader{status_code: 200}} =
+               Client.post(client, "http://example.com/", new_thing_hal)
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
     end
   end
 
   test ".post with empty response", %{client: client} do
-    stub_request "post", url: "http://example.com/",
-                         req_body: "post body",
-                         resp_body: "" do
+    stub_request "post",
+      url: "http://example.com/",
+      req_body: "post body",
+      resp_body: "" do
       assert {:ok, %NonHalResponse{}, %ResponseHeader{status_code: 200}} =
-        Client.post(client, "http://example.com/", "post body")
+               Client.post(client, "http://example.com/", "post body")
     end
   end
 
   test ".put w/ normal link", %{client: client} do
     new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "put", url: "http://example.com/",
-                        req_body: "the request body",
-                        resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.put(client, "http://example.com/", "the request body")
+    stub_request "put",
+      url: "http://example.com/",
+      req_body: "the request body",
+      resp_body: new_thing_hal do
+      assert {:ok, target = %Document{}, %ResponseHeader{status_code: 200}} =
+               Client.put(client, "http://example.com/", "the request body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
     end
@@ -78,16 +81,23 @@ defmodule ExHal.ClientHttpRequestTest do
   test ".patch w/ normal link", %{client: client} do
     new_thing_hal = hal_str("http://example.com/new-thing")
 
-    stub_request "patch", url: "http://example.com/",
-                        req_body: "the request body",
-                        resp_body: new_thing_hal do
-      assert {:ok, (target = %Document{}), %ResponseHeader{status_code: 200}} =
-        Client.patch(client, "http://example.com/", "the request body")
+    stub_request "patch",
+      url: "http://example.com/",
+      req_body: "the request body",
+      resp_body: new_thing_hal do
+      assert {:ok, target = %Document{}, %ResponseHeader{status_code: 200}} =
+               Client.patch(client, "http://example.com/", "the request body")
 
       assert {:ok, "http://example.com/new-thing"} = ExHal.url(target)
     end
   end
 
+  test ".delete w/ with empty response", %{client: client} do
+    stub_request "delete", url: "http://example.com/", resp_body: "" do
+      assert {:ok, %ExHal.NonHalResponse{}, %ResponseHeader{status_code: 200}} =
+               Client.delete(client, "http://example.com/")
+    end
+  end
 
   # Background
 
@@ -97,11 +107,11 @@ defmodule ExHal.ClientHttpRequestTest do
 
   def hal_str(url) do
     """
-      { "name": "#{url}",
-        "_links": {
-          "self": { "href": "#{url}" }
-        }
+    { "name": "#{url}",
+      "_links": {
+        "self": { "href": "#{url}" }
       }
-      """
+    }
+    """
   end
 end
