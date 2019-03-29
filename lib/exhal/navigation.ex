@@ -42,7 +42,10 @@ defmodule ExHal.Navigation do
 
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> missing_link_handler.(name)
-      links -> Enum.map(links, &_follow_link(a_doc.client, &1, tmpl_vars, opts))
+      links ->
+        links
+        |> Task.async_stream(&_follow_link(a_doc.client, &1, tmpl_vars, opts))
+        |> Enum.map(fn {:ok, followed_link} -> followed_link end)
     end
   end
 
