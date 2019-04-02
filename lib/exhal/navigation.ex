@@ -37,15 +37,9 @@ defmodule ExHal.Navigation do
   end
 
   def follow_links(a_doc, name, missing_link_handler, opts \\ %{}) do
-    opts = Map.new(opts)
-    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
-
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> missing_link_handler.(name)
-      links ->
-        links
-        |> Task.async_stream(&_follow_link(a_doc.client, &1, tmpl_vars, opts))
-        |> Enum.map(fn {:ok, followed_link} -> followed_link end)
+      links -> _follow_links(a_doc.client, links, Map.new(opts))
     end
   end
 
@@ -187,12 +181,20 @@ defmodule ExHal.Navigation do
     end
   end
 
+  defp _follow_links(client, links, %{} = opts) do
+    tmpl_vars = Map.get(opts, :tmpl_vars, %{})
+
+    links
+    |> Task.async_stream(&_follow_link(client, &1, tmpl_vars, opts))
+    |> Enum.map(fn {:ok, followed_link} -> followed_link end)
+  end
+
   defp _follow_link(client, link, tmpl_vars, opts) do
     cond do
       Link.embedded?(link) ->
         {:ok, link.target, %ResponseHeader{status_code: 200}}
 
-      :else ->
+      true ->
         @client_module.get(client, Link.target_url!(link, tmpl_vars), opts)
     end
   end
