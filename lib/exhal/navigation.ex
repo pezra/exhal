@@ -185,9 +185,17 @@ defmodule ExHal.Navigation do
   end
 
   defp _follow_links(client, links, tmpl_vars, opts) do
-    links
-    |> Task.async_stream(&_follow_link(client, &1, tmpl_vars, opts))
-    |> Enum.map(fn {:ok, followed_link} -> followed_link end)
+    {:ok, tsup} = Task.Supervisor.start_link()
+
+    try do
+      Task.Supervisor.async_stream_nolink(tsup, links, &_follow_link(client, &1, tmpl_vars, opts))
+      |> Enum.map(fn
+        {:ok, followed_link} -> followed_link
+        {:exit, reason} -> raise inspect(reason)
+      end)
+    after
+      Supervisor.stop(tsup, :normal)
+    end
   end
 
   defp _follow_link(client, link, tmpl_vars, opts) do
