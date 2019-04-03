@@ -38,7 +38,9 @@ defmodule ExHal.Navigation do
   def follow_links(a_doc, name, missing_link_handler, opts \\ %{}) do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> missing_link_handler.(name)
-      links -> _follow_links(a_doc.client, links, Map.new(opts))
+      links ->
+        {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
+        _follow_links(a_doc.client, links, tmpl_vars, opts)
     end
   end
 
@@ -122,7 +124,7 @@ defmodule ExHal.Navigation do
     * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
   """
   def link_targets(a_doc, name, opts \\ %{}) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
+    {tmpl_vars, _opts} = tmpl_vars_and_opts_map(opts)
 
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing ->
@@ -178,9 +180,11 @@ defmodule ExHal.Navigation do
     end
   end
 
-  defp _follow_links(client, links, %{} = opts) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
+  defp _follow_links(client, [link], tmpl_vars, opts) do
+    [_follow_link(client, link, tmpl_vars, opts)]
+  end
 
+  defp _follow_links(client, links, tmpl_vars, opts) do
     links
     |> Task.async_stream(&_follow_link(client, &1, tmpl_vars, opts))
     |> Enum.map(fn {:ok, followed_link} -> followed_link end)
