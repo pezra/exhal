@@ -170,6 +170,10 @@ defmodule ExHalTest do
       assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc(), "absent")
     end
 
+    test ".follow_link w/ malformed URL" do
+      assert catch_error(ExHal.follow_link(doc("/boom"), "single"))
+    end
+
     test ".follow_link w/ multiple links with strict true fails" do
       assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc(), "multiple", strict: true)
     end
@@ -243,11 +247,8 @@ defmodule ExHalTest do
       end
     end
 
-    test ".follow_links to non-existent URLs" do
-      ExHal.follow_links(doc(0), "multiple")
-      |> Enum.each(fn resp ->
-        assert {:error, %ExHal.Error{}} = resp
-      end)
+    test ".follow_links to malformed URLs" do
+      assert catch_error(ExHal.follow_links(doc("/boom"), "multiple"))
     end
 
     test ".post w/ normal link" do
