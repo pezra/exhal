@@ -203,7 +203,7 @@ defmodule ExHal.Navigation do
       Link.embedded?(link) ->
         {:ok, link.target, %ResponseHeader{status_code: 200}}
 
-      true ->
+      :else ->
         @client_module.get(client, Link.target_url!(link, tmpl_vars), opts)
     end
   end
