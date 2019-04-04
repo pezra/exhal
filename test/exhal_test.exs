@@ -271,16 +271,16 @@ defmodule ExHalTest do
       end
     end
 
-    defp doc(scheme_and_domain \\ "http://example.com/") do
+    defp doc(base_url \\ "http://example.com/") do
       ExHal.Document.from_parsed_hal(ExHal.client,
         %{"_links" =>
-          %{"single" => %{ "href" => scheme_and_domain },
-            "tmpl" => %{ "href" => "#{scheme_and_domain}{?q}", "templated" => true },
-            "multiple" => [%{ "href" => "#{scheme_and_domain}1" },
-              %{ "href" => "#{scheme_and_domain}2" }]
+          %{"single" => %{ "href" => base_url },
+            "tmpl" => %{ "href" => "#{base_url}{?q}", "templated" => true },
+            "multiple" => [%{ "href" => "#{base_url}1" },
+              %{ "href" => "#{base_url}2" }]
             },
           "_embedded" =>
-          %{"embedded" => %{"_links" => %{"self" => %{"href" => "#{scheme_and_domain}embedded"}}}}
+          %{"embedded" => %{"_links" => %{"self" => %{"href" => "#{base_url}embedded"}}}}
          }
       )
     end
