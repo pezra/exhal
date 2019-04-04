@@ -12,10 +12,9 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if not
   """
   def follow_link(a_doc, name, opts \\ %{tmpl_vars: %{}, strict: false, headers: []}) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
-    pick_volunteer? = !Map.get(opts, :strict, false)
+    {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
 
-    case figure_link(a_doc, name, pick_volunteer?) do
+    case figure_link(a_doc, name, strict?) do
       {:error, e} -> {:error, e}
       {:ok, link} -> _follow_link(a_doc.client, link, tmpl_vars, opts)
     end
@@ -39,7 +38,7 @@ defmodule ExHal.Navigation do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing -> missing_link_handler.(name)
       links ->
-        {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
+        {tmpl_vars, _strict?, opts} = interpret_nav_opts(opts)
         _follow_links(a_doc.client, links, tmpl_vars, opts)
     end
   end
@@ -55,10 +54,9 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def post(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
-    pick_volunteer? = !Map.get(opts, :strict, true)
+    {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
 
-    case figure_link(a_doc, name, pick_volunteer?) do
+    case figure_link(a_doc, name, strict?) do
       {:error, e} -> {:error, e}
       {:ok, link} -> @client_module.post(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
@@ -71,10 +69,9 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def put(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
-    pick_volunteer? = !Map.get(opts, :strict, true)
+    {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
 
-    case figure_link(a_doc, name, pick_volunteer?) do
+    case figure_link(a_doc, name, strict?) do
       {:error, e} -> {:error, e}
       {:ok, link} -> @client_module.put(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
@@ -87,10 +84,9 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def patch(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
-    pick_volunteer? = !Map.get(opts, :strict, true)
+    {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
 
-    case figure_link(a_doc, name, pick_volunteer?) do
+    case figure_link(a_doc, name, strict?) do
       {:error, e} -> {:error, e}
       {:ok, link} -> @client_module.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
@@ -106,10 +102,9 @@ defmodule ExHal.Navigation do
     * `:strict` - true if the existence of multiple matching links should cause a failure. Default: `false`
   """
   def link_target(a_doc, name, opts \\ %{}) do
-    {tmpl_vars, opts} = tmpl_vars_and_opts_map(opts)
-    strict? = Map.get(opts, :strict, false)
+    {tmpl_vars, strict?, _opts} = interpret_nav_opts(opts)
 
-    case figure_link(a_doc, name, !strict?) do
+    case figure_link(a_doc, name, strict?) do
       {:ok, link} -> find_link_target(link, tmpl_vars)
       r = _ -> r
     end
@@ -124,7 +119,7 @@ defmodule ExHal.Navigation do
     * `:tmpl_vars` - `Map` of variables with which to expand any templates found. Default: `%{}`
   """
   def link_targets(a_doc, name, opts \\ %{}) do
-    {tmpl_vars, _opts} = tmpl_vars_and_opts_map(opts)
+    {tmpl_vars, _strict?, _opts} = interpret_nav_opts(opts)
 
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing ->
@@ -163,20 +158,20 @@ defmodule ExHal.Navigation do
     end
   end
 
-  defp figure_link(a_doc, name, pick_volunteer?) do
+  defp figure_link(a_doc, name, strict?) do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing ->
         {:error, %Error{reason: "no such link: #{name}"}}
 
-      ls = [_ | [_ | _]] ->
-        if pick_volunteer? do
-          {:ok, List.first(ls)}
-        else
-          {:error, %Error{reason: "multiple choices"}}
-        end
+      [link] ->
+        {:ok, link}
 
-      [l] ->
-        {:ok, l}
+      [first | _rest] ->
+        if strict? do
+          {:error, %Error{reason: "multiple choices"}}
+        else
+          {:ok, first}
+        end
     end
   end
 
@@ -208,13 +203,19 @@ defmodule ExHal.Navigation do
     end
   end
 
-  defp tmpl_vars_and_opts_map(%{} = opts) do
-    Map.pop(opts, :tmpl_vars, %{})
+  @typep template_vars :: map()
+  @typep poison_options :: map()
+
+  @spec interpret_nav_opts(map()) :: {template_vars(), boolean(), poison_options()}
+  defp interpret_nav_opts(%{} = opts) do
+    {nav_options, poison_options} = Map.split(opts, [:tmpl_vars, :strict])
+
+    {Map.get(nav_options, :tmpl_vars, %{}), Map.get(nav_options, :strict, false), poison_options}
   end
 
-  defp tmpl_vars_and_opts_map(opts) do
+  defp interpret_nav_opts(opts) do
     opts
     |> Map.new()
-    |> tmpl_vars_and_opts_map()
+    |> interpret_nav_opts()
   end
 end
