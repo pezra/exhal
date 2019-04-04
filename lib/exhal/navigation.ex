@@ -54,12 +54,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def post(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
-
-    case figure_link(a_doc, name, strict?) do
-      {:error, e} -> {:error, e}
-      {:ok, link} -> @client_module.post(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
-    end
+    update_document(a_doc, name, body, opts, &@client_module.post/4)
   end
 
   @doc """
@@ -69,12 +64,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def put(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
-
-    case figure_link(a_doc, name, strict?) do
-      {:error, e} -> {:error, e}
-      {:ok, link} -> @client_module.put(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
-    end
+    update_document(a_doc, name, body, opts, &@client_module.put/4)
   end
 
   @doc """
@@ -84,11 +74,15 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def patch(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
+    update_document(a_doc, name, body, opts, &@client_module.patch/4)
+  end
+
+  defp update_document(a_doc, name, body, opts, fun) do
     {tmpl_vars, strict?, opts} = interpret_nav_opts(opts)
 
     case figure_link(a_doc, name, strict?) do
       {:error, e} -> {:error, e}
-      {:ok, link} -> @client_module.patch(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
+      {:ok, link} -> fun.(a_doc.client, Link.target_url!(link, tmpl_vars), body, opts)
     end
   end
 
