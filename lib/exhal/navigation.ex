@@ -177,7 +177,8 @@ defmodule ExHal.Navigation do
     {:ok, tsup} = Task.Supervisor.start_link()
 
     try do
-      Task.Supervisor.async_stream_nolink(tsup, links, &_follow_link(client, &1, tmpl_vars, opts))
+      Task.Supervisor.async_stream_nolink(tsup, links, &_follow_link(client, &1, tmpl_vars, opts),
+        figure_async_links_options(opts))
       |> Enum.map(fn
         {:ok, followed_link} -> followed_link
         {:exit, reason} -> raise inspect(reason)
@@ -211,5 +212,21 @@ defmodule ExHal.Navigation do
     opts
     |> Map.new()
     |> interpret_nav_opts()
+  end
+
+  @default_poison_timeout 5000
+  @default_poison_recv_timeout 8000
+  @default_async_stream_timeout :timer.seconds(60)
+
+  defp figure_async_links_options(poison_options) do
+    # respect any timeout settings from the user
+    timeout = case Map.take(poison_options, [:timeout, :recv_timeout]) do
+      %{timeout: timeout, recv_timeout: recv_timeout} -> timeout + recv_timeout
+      %{timeout: timeout} -> timeout + @default_poison_recv_timeout
+      %{recv_timeout: recv_timeout} -> recv_timeout + @default_poison_timeout
+      _ -> @default_async_stream_timeout
+    end
+
+    [timeout: timeout]
   end
 end
