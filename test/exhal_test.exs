@@ -170,6 +170,10 @@ defmodule ExHalTest do
       assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc(), "absent")
     end
 
+    test ".follow_link w/ malformed URL" do
+      assert catch_error(ExHal.follow_link(doc("/boom"), "single"))
+    end
+
     test ".follow_link w/ multiple links with strict true fails" do
       assert {:error, %ExHal.Error{}} = ExHal.follow_link(doc(), "multiple", strict: true)
     end
@@ -216,7 +220,35 @@ defmodule ExHalTest do
     end
 
     test ".follow_links w/ multiple links" do
-      # exvcr fail
+      stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str("") do
+        ExHal.follow_links(doc(), "multiple")
+        |> Enum.each(fn resp ->
+          assert {:ok, target = %Document{}, %ResponseHeader{status_code: 200}} = resp
+          assert {:ok, _} = ExHal.url(target)
+        end)
+      end
+    end
+
+    test ".follow_links w/ non-HAL responses" do
+      stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: "" do
+        ExHal.follow_links(doc(), "multiple")
+        |> Enum.each(fn resp ->
+          assert {:ok, %ExHal.NonHalResponse{}, _} = resp
+        end)
+      end
+    end
+
+    test ".follow_links w/ non-200 status" do
+      stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str(""), resp_status: 500 do
+        ExHal.follow_links(doc(), "multiple")
+        |> Enum.each(fn resp ->
+          assert {:error, %Document{}, %ResponseHeader{status_code: 500}} = resp
+        end)
+      end
+    end
+
+    test ".follow_links to malformed URLs" do
+      assert catch_error(ExHal.follow_links(doc("/boom"), "multiple"))
     end
 
     test ".post w/ normal link" do
@@ -239,16 +271,16 @@ defmodule ExHalTest do
       end
     end
 
-    defp doc do
+    defp doc(base_url \\ "http://example.com/") do
       ExHal.Document.from_parsed_hal(ExHal.client,
         %{"_links" =>
-           %{"single" => %{ "href" => "http://example.com/" },
-             "tmpl" => %{ "href" => "http://example.com/{?q}", "templated" => true },
-             "multiple" => [%{ "href" => "http://example.com/1" },
-                            %{ "href" => "http://example.com/2" }]
+          %{"single" => %{ "href" => base_url },
+            "tmpl" => %{ "href" => "#{base_url}{?q}", "templated" => true },
+            "multiple" => [%{ "href" => "#{base_url}1" },
+              %{ "href" => "#{base_url}2" }]
             },
           "_embedded" =>
-            %{"embedded" => %{"_links" => %{"self" => %{"href" => "http://example.com/embedded"}}}}
+          %{"embedded" => %{"_links" => %{"self" => %{"href" => "#{base_url}embedded"}}}}
          }
       )
     end
