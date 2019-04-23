@@ -1,4 +1,4 @@
-defmodule Mix.Tasks.Release do
+defmodule Mix.Tasks.ExHal.Release do
   @shortdoc "Release the hounds!"
 
   use Mix.Task
