@@ -14,7 +14,17 @@ defmodule ExHal.Collection do
       fn -> {:ok, a_doc} end,
       fn follow_result ->
         case follow_result do
-          {:error, _} -> {:halt, follow_result}
+          # End of Pagination
+          {:error, %ExHal.NoSuchLinkError{}} ->
+            {:halt, nil}
+          {:error, %ExHal.NoSuchLinkError{}, _headers} ->
+            {:halt, nil}
+
+          {:error, %ExHal.Error{reason: msg}} ->
+            raise ExHal.CollectionError, message: "Failed to fetch next link due to #{msg}"
+          {:error, %ExHal.Error{reason: msg}, _headers} ->
+            raise ExHal.CollectionError, message: "Failed to fetch next link due to #{msg}"
+
           {:ok, page} -> page |> expand_page
           {:ok, page, %ResponseHeader{}} -> page |> expand_page
         end

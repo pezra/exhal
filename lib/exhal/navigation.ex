@@ -2,7 +2,7 @@ defmodule ExHal.Navigation do
   @client_module Application.get_env(:exhal, :client, ExHal.Client)
 
   alias ExHal.Link
-  alias ExHal.Error
+  alias ExHal.{Error, NoSuchLinkError}
   alias ExHal.ResponseHeader
 
   @doc """
@@ -23,13 +23,13 @@ defmodule ExHal.Navigation do
   @doc """
   Follows all links of a particular rel in a HAL document.
 
-  Returns `[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:error, %ExHal.Error{...}, ...]`
+  Returns `[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:error, %ExHal.NoSuchLinkError{...}, {:error, %ExHal.Error{...} ...]`
   """
   def follow_links(a_doc, name, opts) when is_map(opts) or is_list(opts) do
     follow_links(
       a_doc,
       name,
-      fn _name -> [{:error, %Error{reason: "no such link: #{name}"}}] end,
+      fn _name -> [{:error, %NoSuchLinkError{reason: "no such link: #{name}"}}] end,
       opts
     )
   end
@@ -105,7 +105,7 @@ defmodule ExHal.Navigation do
   end
 
   @doc """
-  Returns `{:ok, [url1, ...]}` if a matching link is found or `{:error, %ExHal.Error{...}}` if not.
+  Returns `{:ok, [url1, ...]}` if a matching link is found or `{:error, %ExHal.NoSuchLinkError{...}}` if not.
 
   * a_doc - `ExHal.Document` in which to search for links
   * name - the rel of the link of interest
@@ -117,7 +117,7 @@ defmodule ExHal.Navigation do
 
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing ->
-        {:error, %Error{reason: "no such link: #{name}"}}
+        {:error, %NoSuchLinkError{reason: "no such link: #{name}"}}
 
       links ->
         {:ok,
@@ -155,7 +155,7 @@ defmodule ExHal.Navigation do
   defp figure_link(a_doc, name, strict?) do
     case ExHal.get_links_lazy(a_doc, name, fn -> :missing end) do
       :missing ->
-        {:error, %Error{reason: "no such link: #{name}"}}
+        {:error, %NoSuchLinkError{reason: "no such link: #{name}"}}
 
       [link] ->
         {:ok, link}
