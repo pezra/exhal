@@ -22,6 +22,20 @@ defmodule ExHal.NavigationTest do
     assert {:ok, "http://example.com/e"} = ExHal.url(target)
   end
 
+  test ".follow_links w/ embedded link", %{doc: doc} do
+    stub_request "get", url: "~r/http:\/\/example.com\/[12]/", resp_body: hal_str("") do
+      Navigation.follow_links(doc, "multiple")
+      |> Enum.each(fn resp ->
+        assert {:ok, target = %Document{}, %ResponseHeader{status_code: 200}} = resp
+        assert {:ok, _} = ExHal.url(target)
+      end)
+    end
+  end
+
+  test ".follow_links w/ non-existent rel", %{doc: doc} do
+    assert {:error, %ExHal.NoSuchLinkError{}} = Navigation.follow_links(doc, "absent")
+  end
+
   test ".post", %{doc: doc} do
     new_thing_hal = hal_str("http://example.com/new-thing")
 

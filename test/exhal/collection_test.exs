@@ -95,13 +95,11 @@ defmodule ExHal.CollectionTest do
     end
 
     test ".to_stream(multi_page_collection_doc) handles error", %{
-      last_page_collection_url: last_page_collection_url,
-      last_page_collection_hal_str: last_page_collection_hal_str,
       multi_page_collection_doc: multi_page_collection_doc
     } do
 
       ExHal.ClientMock
-      |> expect(:get, fn _client, url, _opts ->
+      |> expect(:get, fn _client, _url, _opts ->
         {:error, %ExHal.Error{reason: :timeout}}
       end)
 

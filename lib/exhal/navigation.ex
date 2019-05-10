@@ -23,13 +23,14 @@ defmodule ExHal.Navigation do
   @doc """
   Follows all links of a particular rel in a HAL document.
 
-  Returns `[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:error, %ExHal.NoSuchLinkError{...}, {:error, %ExHal.Error{...} ...]`
+  Returns `[{:ok, %ExHal.Document{...}, %ExHal.ResponseHeader{...}}, {:error, %ExHal.Error{...} ...]` if link is found;
+  `{:error, %ExHal.NoSuchLinkError{...}` if not
   """
   def follow_links(a_doc, name, opts) when is_map(opts) or is_list(opts) do
     follow_links(
       a_doc,
       name,
-      fn _name -> [{:error, %NoSuchLinkError{reason: "no such link: #{name}"}}] end,
+      fn _name -> {:error, %NoSuchLinkError{reason: "no such link: #{name}"}} end,
       opts
     )
   end
