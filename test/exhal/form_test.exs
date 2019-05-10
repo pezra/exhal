@@ -9,6 +9,13 @@ defmodule ExHal.FormTest do
   import Mox
   setup :verify_on_exit!
 
+  setup do
+    Application.put_env(:exhal, :client, ExHal.ClientMock)
+    on_exit fn ->
+      Application.put_env(:exhal, :client, ExHal.Client)
+    end
+  end
+
   doctest ExHal.Form
 
   describe ".from_forms_entry/1" do

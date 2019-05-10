@@ -4,7 +4,7 @@ defmodule ExHal.NavigationTest do
   use ExUnit.Case, async: false
   use RequestStubbing
 
-  alias ExHal.{Navigation,Document,Error,ResponseHeader}
+  alias ExHal.{Navigation,Document,Error,NoSuchLinkError,ResponseHeader}
 
   test ".follow_link", %{doc: doc} do
     thing_hal = hal_str("http://example.com/thing")
@@ -72,7 +72,7 @@ defmodule ExHal.NavigationTest do
 
     assert {:error, %Error{}} = Navigation.link_target(doc, "multiple", strict: true)
 
-    assert {:error, %Error{}} = Navigation.link_target(doc, "nonexistent")
+    assert {:error, %NoSuchLinkError{}} = Navigation.link_target(doc, "nonexistent")
   end
 
   # Background

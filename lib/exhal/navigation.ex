@@ -1,5 +1,5 @@
 defmodule ExHal.Navigation do
-  @client_module Application.get_env(:exhal, :client, ExHal.Client)
+  # client_module() Application.get_env(:exhal, :client, ExHal.Client)
 
   alias ExHal.Link
   alias ExHal.{Error, NoSuchLinkError}
@@ -54,7 +54,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def post(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    update_document(a_doc, name, body, opts, &@client_module.post/4)
+    update_document(a_doc, name, body, opts, &client_module().post/4)
   end
 
   @doc """
@@ -64,7 +64,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def put(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    update_document(a_doc, name, body, opts, &@client_module.put/4)
+    update_document(a_doc, name, body, opts, &client_module().put/4)
   end
 
   @doc """
@@ -74,7 +74,7 @@ defmodule ExHal.Navigation do
   `{:error, %ExHal.Error{...}}` if response is an error if not
   """
   def patch(a_doc, name, body, opts \\ %{tmpl_vars: %{}, strict: true}) do
-    update_document(a_doc, name, body, opts, &@client_module.patch/4)
+    update_document(a_doc, name, body, opts, &client_module().patch/4)
   end
 
   defp update_document(a_doc, name, body, opts, fun) do
@@ -194,7 +194,7 @@ defmodule ExHal.Navigation do
         {:ok, link.target, %ResponseHeader{status_code: 200}}
 
       :else ->
-        @client_module.get(client, Link.target_url!(link, tmpl_vars), opts)
+        client_module().get(client, Link.target_url!(link, tmpl_vars), opts)
     end
   end
 
@@ -229,4 +229,6 @@ defmodule ExHal.Navigation do
 
     [timeout: timeout]
   end
+
+  defp client_module(), do: Application.get_env(:exhal, :client, ExHal.Client)
 end
