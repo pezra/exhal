@@ -8,6 +8,8 @@ defmodule ExHal.CollectionTest do
   alias ExHal.Collection
   alias ExHal.ResponseHeader
 
+  import Mox
+
   test ".to_json_hash" do
     parsed_hal = %{
       "name" => "My Name",
@@ -74,6 +76,22 @@ defmodule ExHal.CollectionTest do
       assert Enum.any? subject, has_doc_with_name("second")
       assert Enum.any? subject, has_doc_with_name("last")
     end
+  end
+
+  test ".to_stream(multi_page_collection_doc) handles error", %{
+    last_page_collection_url: last_page_collection_url,
+    last_page_collection_hal_str: last_page_collection_hal_str,
+    multi_page_collection_doc: multi_page_collection_doc
+  } do
+
+    ExHal.ClientMock
+    |> expect(:get, fn _client, last_page_collection_url, _opts ->
+      {:error, %ExHal.Error{reason: :timeout}}
+    end)
+
+    subject = Collection.to_stream(multi_page_collection_doc)
+
+    assert_raise ExHal.CollectionError, "Failed to fetch next link due to timeout", fn -> Enum.count(subject) end
   end
 
   test "ExHal.to_stream(sinlge_page_collection_doc) works", ctx do
