@@ -1,7 +1,7 @@
 Code.require_file "../support/request_stubbing.exs", __DIR__
 
 defmodule ExHal.CollectionTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use RequestStubbing
 
   alias ExHal.Document

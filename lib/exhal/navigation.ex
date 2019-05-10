@@ -1,6 +1,4 @@
 defmodule ExHal.Navigation do
-  # client_module() Application.get_env(:exhal, :client, ExHal.Client)
-
   alias ExHal.Link
   alias ExHal.{Error, NoSuchLinkError}
   alias ExHal.ResponseHeader
