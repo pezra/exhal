@@ -7,7 +7,11 @@ defmodule ExHal.Collection do
   alias ExHal.ResponseHeader
 
   @doc """
-  Returns a stream that iterate over the collection represented by `a_doc`.
+  Returns a stream that iterates over the collection represented by `a_doc`.
+  Iteration halts when there is no further `next` link to follow.
+
+  An `ExHal.CollectionError` will be raised to the caller only if an
+  `ExHal.Error` occurs when requesting the next resource.
   """
   def to_stream(a_doc) do
     Stream.resource(
